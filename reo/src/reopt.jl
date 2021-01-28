@@ -1259,7 +1259,7 @@ function add_util_results(m, p, r::Dict)
                 sum(m[:dvGridPurchase][u,ts] for u in p.PricingTier) - m[:dvGridToStorage][ts] )
     r["GridToLoad"] = round.(value.(GridToLoad), digits=3)
 	
-	r["year_one_elec_grid_emissions_scope2_lbsCO2e"] = round(value(m[:EmissionsYr1_Scope2_LbsCO2e]), digits=2)
+	r["year_one_elec_grid_emissions_scope2_lbsCO2e"] = 0.0 #round(value(m[:EmissionsYr1_Scope2_LbsCO2e]), digits=2)
 end
 
 
