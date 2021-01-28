@@ -788,6 +788,7 @@ function add_cost_function(m, p)
 		0.0001*m[:MinChargeAdder] is added back into LCC when writing to results.  =#
 end
 
+
 function add_re_calcs_and_constraints(m,p)
 	# Only PV and Wind generation count as RE (CHP does not)
 	if p.REAccountingMethod == 1 # yes RE "credit" for exported RE
@@ -963,8 +964,8 @@ function reopt_run(m, p::Parameter)
 	add_cost_expressions(m, p)
 	add_export_expressions(m, p)
 	add_util_fixed_and_min_charges(m, p)
-	add_re_calcs_and_constraints(m,p)
-	add_emissions_calcs_and_constraints(m,p)
+	#add_re_calcs_and_constraints(m,p)
+	#add_emissions_calcs_and_constraints(m,p)
 	add_cost_function(m, p)
 
     if Obj == 1
@@ -1035,14 +1036,14 @@ end
 
 function add_site_results(m, p, r::Dict)
 	
-	r["annual_re_kwh"] = round(value(m[:AnnualREkWh]), digits=2)
-	m[:AnnualREPercent] = @expression(m, m[:AnnualREkWh]/(sum(p.ElecLoad[ts] for ts in p.TimeStep)))
-	r["annual_re_percent"] = round(value(m[:AnnualREPercent]), digits=2)
-	r["year_one_emissions_lbsCO2e"] = round(value(m[:EmissionsYr1_Total_LbsCO2e]), digits=2) 
-	r["year_one_emissionsreduction_percent"] = round(value(1-m[:EmissionsYr1_Total_LbsCO2e]/p.BAUYr1Emissions), digits=2)
-	r["year_one_scope1_emissions_lbsCO2e"] = round(value(m[:EmissionsYr1_Scope1_LbsCO2e]), digits=2)
-	r["year_one_scope2_emissions_lbsCO2e"] = round(value(m[:EmissionsYr1_Scope2_LbsCO2e]), digits=2)
-	r["year_one_nonscope_emissions_lbsCO2e"] = round(value(m[:EmissionsYr1_NonScope_LbsCO2e]), digits=2)
+	r["annual_re_kwh"] = 0.0 #round(value(m[:AnnualREkWh]), digits=2)
+	m[:AnnualREPercent] = 0.0 #@expression(m, m[:AnnualREkWh]/(sum(p.ElecLoad[ts] for ts in p.TimeStep)))
+	r["annual_re_percent"] = 0.0 #round(value(m[:AnnualREPercent]), digits=2)
+	r["year_one_emissions_lbsCO2e"] = 0.0 #round(value(m[:EmissionsYr1_Total_LbsCO2e]), digits=2) 
+	r["year_one_emissionsreduction_percent"] = 0.0 #round(value(1-m[:EmissionsYr1_Total_LbsCO2e]/p.BAUYr1Emissions), digits=2)
+	r["year_one_scope1_emissions_lbsCO2e"] = 0.0 #round(value(m[:EmissionsYr1_Scope1_LbsCO2e]), digits=2)
+	r["year_one_scope2_emissions_lbsCO2e"] = 0.0 #round(value(m[:EmissionsYr1_Scope2_LbsCO2e]), digits=2)
+	r["year_one_nonscope_emissions_lbsCO2e"] = 0.0 #round(value(m[:EmissionsYr1_NonScope_LbsCO2e]), digits=2)
 	
 end 
 
@@ -1117,10 +1118,10 @@ function add_generator_results(m, p, r::Dict)
 	)
 	r["average_yearly_gen_energy_produced"] = round(value(m[:AverageGenProd]), digits=0)
 	
-	EmissionsYr1_Scope1_LbsCO2e_GEN = calc_yr1_scope1_emissions(m,p; tech_array = m[:GeneratorTechs])
-	EmissionsYr1_NonScope_LbsCO2e_GEN = calc_yr1_nonscope_emissions(m,p; tech_array = m[:GeneratorTechs])
-	r["year_one_generator_emissions_scope1_lbsCO2e"] = round(value(EmissionsYr1_Scope1_LbsCO2e_GEN), digits=2)
-	r["year_one_generator_emissions_nonscope_lbsCO2e"] = round(value(EmissionsYr1_NonScope_LbsCO2e_GEN), digits=2)
+	#EmissionsYr1_Scope1_LbsCO2e_GEN = calc_yr1_scope1_emissions(m,p; tech_array = m[:GeneratorTechs])
+	#EmissionsYr1_NonScope_LbsCO2e_GEN = calc_yr1_nonscope_emissions(m,p; tech_array = m[:GeneratorTechs])
+	r["year_one_generator_emissions_scope1_lbsCO2e"] = 0.0 #round(value(EmissionsYr1_Scope1_LbsCO2e_GEN), digits=2)
+	r["year_one_generator_emissions_nonscope_lbsCO2e"] = 0.0 #round(value(EmissionsYr1_NonScope_LbsCO2e_GEN), digits=2)
 	nothing
 end
 
@@ -1158,10 +1159,10 @@ function add_wind_results(m, p, r::Dict)
 	)
 	r["average_wind_energy_produced"] = round(value(m[:AverageWindProd]), digits=0)
 	
-	EmissionsYr1_Scope1_LbsCO2e_WIND = calc_yr1_scope1_emissions(m,p; tech_array = m[:WindTechs])
-	EmissionsYr1_NonScope_LbsCO2e_WIND = calc_yr1_nonscope_emissions(m,p; tech_array = m[:WindTechs])
-	r["year_one_wind_emissions_scope1_lbsCO2e"] = round(value(EmissionsYr1_Scope1_LbsCO2e_WIND), digits=2)
-	r["year_one_wind_emissions_nonscope_lbsCO2e"] = round(value(EmissionsYr1_NonScope_LbsCO2e_WIND), digits=2)
+	#EmissionsYr1_Scope1_LbsCO2e_WIND = calc_yr1_scope1_emissions(m,p; tech_array = m[:WindTechs])
+	#EmissionsYr1_NonScope_LbsCO2e_WIND = calc_yr1_nonscope_emissions(m,p; tech_array = m[:WindTechs])
+	r["year_one_wind_emissions_scope1_lbsCO2e"] = 0.0 #round(value(EmissionsYr1_Scope1_LbsCO2e_WIND), digits=2)
+	r["year_one_wind_emissions_nonscope_lbsCO2e"] = 0.0 #round(value(EmissionsYr1_NonScope_LbsCO2e_WIND), digits=2)
 	
 	nothing
 end
@@ -1218,10 +1219,10 @@ function add_pv_results(m, p, r::Dict)
             PVPerUnitSizeOMCosts = @expression(m, sum(p.OMperUnitSize[t] * p.pwf_om * m[:dvSize][t] for t in PVtechs_in_class))
             r[string(PVclass, "_net_fixed_om_costs")] = round(value(PVPerUnitSizeOMCosts) * m[:r_tax_fraction_owner], digits=0)
 		
-			EmissionsYr1_Scope1_LbsCO2e_PV = calc_yr1_scope1_emissions(m,p; tech_array = PVtechs_in_class)
-			EmissionsYr1_NonScope_LbsCO2e_PV = calc_yr1_nonscope_emissions(m,p; tech_array = PVtechs_in_class)
-			r[string("year_one_",PVclass,"_emissions_scope1_lbsCO2e")] = round(value(EmissionsYr1_Scope1_LbsCO2e_PV), digits=2)
-			r[string("year_one_",PVclass,"_emissions_nonscope_lbsCO2e")] = round(value(EmissionsYr1_NonScope_LbsCO2e_PV), digits=2)
+			#EmissionsYr1_Scope1_LbsCO2e_PV = calc_yr1_scope1_emissions(m,p; tech_array = PVtechs_in_class)
+			#EmissionsYr1_NonScope_LbsCO2e_PV = calc_yr1_nonscope_emissions(m,p; tech_array = PVtechs_in_class)
+			r[string("year_one_",PVclass,"_emissions_scope1_lbsCO2e")] = 0.0 #round(value(EmissionsYr1_Scope1_LbsCO2e_PV), digits=2)
+			r[string("year_one_",PVclass,"_emissions_nonscope_lbsCO2e")] = 0.0 #round(value(EmissionsYr1_NonScope_LbsCO2e_PV), digits=2)
 			
 		end
 	end
