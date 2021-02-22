@@ -744,7 +744,6 @@ nested_output_definitions = {
                   "description": "Business as usual total boiler fuel cost over the lifecycle, after-tax",
                   "units": "$"
                 }
->>>>>>> develop
               },
 
               "Generator": {

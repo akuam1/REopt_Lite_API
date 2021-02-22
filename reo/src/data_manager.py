@@ -1168,13 +1168,11 @@ class DataManager:
         tech_to_location, derate, om_cost_us_dollars_per_kw, \
             om_cost_us_dollars_per_kwh, om_cost_us_dollars_per_hr_per_kw_rated, production_factor, \
             charge_efficiency, discharge_efficiency, \
-            electric_derate, chp_thermal_prod_factor = self._get_REopt_array_tech_load(self.available_techs), \
-            tech_emissions_factors = self._get_REopt_array_tech_load(self.available_techs)
+            electric_derate, chp_thermal_prod_factor, tech_emissions_factors = self._get_REopt_array_tech_load(self.available_techs)
         tech_to_location_bau, derate_bau, om_cost_us_dollars_per_kw_bau, \
             om_cost_us_dollars_per_kwh_bau, om_cost_us_dollars_per_hr_per_kw_rated_bau, production_factor_bau, \
             charge_efficiency_bau, discharge_efficiency_bau, \
-            electric_derate_bau, chp_thermal_prod_factor_bau = self._get_REopt_array_tech_load(self.bau_techs), \
-            tech_emissions_factors_bau = self._get_REopt_array_tech_load(self.bau_techs)
+            electric_derate_bau, chp_thermal_prod_factor_bau, tech_emissions_factors_bau = self._get_REopt_array_tech_load(self.bau_techs)
 
         grid_emissions_factor = self.elec_tariff.emissions_factor_series_lb_CO2_per_kwh
         bau_emissions = self.bau_emissions()

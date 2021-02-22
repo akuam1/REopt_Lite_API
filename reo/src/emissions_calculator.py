@@ -31,7 +31,7 @@ class EmissionsCalculator:
         self.time_steps_per_hour = kwargs.get('time_steps_per_hour') or 1
         proj102008 = pyproj.Proj("+proj=aea +lat_1=20 +lat_2=60 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs")
         self.project4326_to_102008 = partial(pyproj.transform,pyproj.Proj(init='epsg:4326'),proj102008)
-    
+    '''
     @staticmethod
     def add_to_data(data):
         
@@ -149,7 +149,6 @@ class EmissionsCalculator:
         data['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2'] += \
         round(data['outputs']['Scenario']['Site']['Boiler']['year_one_emissions_bau_lb_CO2'],precision)
     
-    else:
         if data['outputs']['Scenario']['Site']['Boiler'].get("year_one_boiler_fuel_consumption_mmbtu") or 0 > 0:
             cannot_calc_total_emissions = True
             missing_emissions.append('Boiler')
@@ -162,33 +161,34 @@ class EmissionsCalculator:
         else:
             data['outputs']['Scenario']['Site']['Boiler']['year_one_emissions_bau_lb_CO2'] = 0
 
-
-    if cannot_calc_total_emissions:
-        data['outputs']['Scenario']['Site']['year_one_emissions_lb_CO2'] = None
-
-    if cannot_calc_bau_total_emissions:
-        data['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2'] = None
-    
-    if cannot_calc_bau_total_emissions or cannot_calc_total_emissions:
         
-        message  = 'Could not calculate Site level emissions'
         if cannot_calc_total_emissions:
-            message += ' for optimized results'
-        if cannot_calc_bau_total_emissions:
-            if cannot_calc_total_emissions:
-                message += ' or'
-            message += ' for BAU case'
-        
-        message += '. Missing an emission factor for the following: {}'.format(','.join(set(missing_emissions)))
+            data['outputs']['Scenario']['Site']['year_one_emissions_lb_CO2'] = None
 
-        if 'messages' not in data.keys():
-            data['messages'] = {"warnings":{}}
-        if 'warnings' not in data['messages'].keys():
-            data['messages']["warnings"] = {}
-        data['messages']['warnings']['Emissions Calculation Warning'] = message
+        if cannot_calc_bau_total_emissions:
+            data['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2'] = None
+        
+        if cannot_calc_bau_total_emissions or cannot_calc_total_emissions:
+            
+            message  = 'Could not calculate Site level emissions'
+            if cannot_calc_total_emissions:
+                message += ' for optimized results'
+            if cannot_calc_bau_total_emissions:
+                if cannot_calc_total_emissions:
+                    message += ' or'
+                message += ' for BAU case'
+            
+            message += '. Missing an emission factor for the following: {}'.format(','.join(set(missing_emissions)))
+
+            if 'messages' not in data.keys():
+                data['messages'] = {"warnings":{}}
+            if 'warnings' not in data['messages'].keys():
+                data['messages']["warnings"] = {}
+            data['messages']['warnings']['Emissions Calculation Warning'] = message
 
     return data
-
+    '''
+    
     @property
     def region(self):
         lookup = {  'AK':'Alaska',
