@@ -181,10 +181,10 @@ Base.@kwdef struct Parameter
      AddSOCIncentive::Int64
 
     # Annual RE parameters
-    REAccountingMethod::Int64
-    RETechs::Array{String,1} 
-    MinAnnualPercentRE::Union{Float64,Nothing} 
-    MaxAnnualPercentRE::Union{Float64,Nothing} 
+    REElecAccountingMethod::Int64
+    TechPercentRE::AxisArray
+    MinAnnualPercentREElec::Union{Float64,Nothing} 
+    MaxAnnualPercentREElec::Union{Float64,Nothing} 
 
     # Emissions parameters
     EmissionsAccountingMethod::Int64
@@ -193,6 +193,7 @@ Base.@kwdef struct Parameter
     BAUYr1Emissions::Float64
     GridEmissionsFactor::Array{Float64,1}
     TechEmissionsFactors::AxisArray
+    TechPercentBiomass::AxisArray
 
 	# Added for CHP
 	HotTES::Array{String,1}
@@ -242,9 +243,9 @@ function Parameter(d::Dict)
 		"NMILRegime",
         "TechsByNMILRegime",
         "TechsByFuelType",
-		"FuelCost"
-        "MinAnnualPercentRE",
-        "MaxAnnualPercentRE",
+		"FuelCost",
+        "MinAnnualPercentREElec",
+        "MaxAnnualPercentREElec",
         "MinPercentEmissionsReduction",
         "MaxPercentEmissionsReduction",
      )
@@ -299,6 +300,8 @@ function Parameter(d::Dict)
     d["TechToNMILMapping"] = vector_to_axisarray(d["TechToNMILMapping"], d["Tech"], d["NMILRegime"])
     d["OMcostPerUnitProd"] = AxisArray(d["OMcostPerUnitProd"], d["Tech"])
     d["TechEmissionsFactors"] = AxisArray(d["TechEmissionsFactors"], d["Tech"])
+    d["TechPercentRE"] = AxisArray(d["TechPercentRE"], d["Tech"])
+    d["TechPercentBiomass"] = AxisArray(d["TechPercentBiomass"], d["Tech"])
 	d["OMcostPerUnitHourPerSize"] = AxisArray(d["OMcostPerUnitHourPerSize"], d["Tech"])
 
     # Reformulation additions

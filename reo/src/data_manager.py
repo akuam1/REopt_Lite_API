@@ -678,6 +678,8 @@ class DataManager:
         om_cost_us_dollars_per_hr_per_kw_rated = list()
 
         tech_emissions_factors = list()
+        tech_pct_RE = list()
+        tech_pct_biogenic = list()
 
         charge_efficiency = list()
         discharge_efficiency = list()
@@ -707,21 +709,30 @@ class DataManager:
                 else:
                     om_cost_us_dollars_per_kw.append(eval('self.' + tech + '.om_cost_us_dollars_per_kw'))
 
-
+                # variable om and emissions
                 # only generator and chp techs have variable o&m cost
                 if tech.lower() == 'generator':
                     om_cost_us_dollars_per_kwh.append(float(eval('self.' + tech + '.kwargs["om_cost_us_dollars_per_kwh"]')))
                     om_cost_us_dollars_per_hr_per_kw_rated.append(0.0)
                     tech_emissions_factors.append(float(eval('self.' + tech + '.emissions_factor_lb_CO2_per_gal')))
+                    tech_pct_RE.append(float(eval(self.generator.generator_fuel_percent_RE)))
+                    tech_pct_biogenic.append(float(eval(self.generator.generator_fuel_percent_biogenic)))
                 elif tech.lower() == 'chp':
                     om_cost_us_dollars_per_kwh.append(float(eval('self.' + tech + '.om_cost_us_dollars_per_kwh')))
                     om_cost_us_dollars_per_hr_per_kw_rated.append(float(eval('self.' + tech + '.om_cost_us_dollars_per_hr_per_kw_rated')))
-                    tech_emissions_factors.append(float(eval('self.' + tech + '.emissions_factor_lb_CO2_per_gal')))
+                    tech_emissions_factors.append(float(eval('self.' + tech + '.emissions_factor_lb_CO2_per_mmbtu')))
+                    tech_pct_RE.append(float(eval(self.fuel_tariff.chp_fuel_percent_RE)))
+                    tech_pct_biogenic.append(float(eval(self.fuel_tariff.chp_fuel_percent_biogenic)))
+                elif tech.lower() == 'boiler': 
+                    tech_emissions_factors.append(float(eval('self.' + tech + '.emissions_factor_lb_CO2_per_mmbtu')))
+                    tech_pct_RE.append(float(eval(self.fuel_tariff.boiler_fuel_percent_RE)))
+                    tech_pct_biogenic.append(float(eval(self.fuel_tariff.boiler_fuel_percent_biogenic)))
                 else:
                     om_cost_us_dollars_per_kwh.append(0.0)
                     om_cost_us_dollars_per_hr_per_kw_rated.append(0.0)
                     tech_emissions_factors.append(0.0)
-
+                    tech_pct_RE.append(1.0)
+                    tech_pct_biogenic.append(0.0)
 
                 for location in ['roof', 'ground', 'both']:
                     if tech.startswith('pv'):
@@ -742,7 +753,8 @@ class DataManager:
         return tech_to_location, derate, \
                om_cost_us_dollars_per_kw, om_cost_us_dollars_per_kwh, om_cost_us_dollars_per_hr_per_kw_rated, \
                production_factor, charge_efficiency, discharge_efficiency, \
-               electric_derate, chp_thermal_prod_factor, tech_emissions_factors
+               electric_derate, chp_thermal_prod_factor, \
+               tech_emissions_factors, tech_pct_RE, tech_pct_biogenic
 
     def _get_REopt_techs(self, techs):
         reopt_techs = list()
@@ -1169,12 +1181,12 @@ class DataManager:
             om_cost_us_dollars_per_kwh, om_cost_us_dollars_per_hr_per_kw_rated, production_factor, \
             charge_efficiency, discharge_efficiency, \
             electric_derate, chp_thermal_prod_factor, \
-            tech_emissions_factors = self._get_REopt_array_tech_load(self.available_techs)
+            tech_emissions_factors, tech_pct_RE, tech_pct_biogenic = self._get_REopt_array_tech_load(self.available_techs)
         tech_to_location_bau, derate_bau, om_cost_us_dollars_per_kw_bau, \
             om_cost_us_dollars_per_kwh_bau, om_cost_us_dollars_per_hr_per_kw_rated_bau, production_factor_bau, \
             charge_efficiency_bau, discharge_efficiency_bau, \
             electric_derate_bau, chp_thermal_prod_factor_bau, \
-            tech_emissions_factors_bau = self._get_REopt_array_tech_load(self.bau_techs)
+            tech_emissions_factors_bau, tech_pct_RE_bau, tech_pct_biogenic_bau = self._get_REopt_array_tech_load(self.bau_techs)
 
         grid_emissions_factor = self.elec_tariff.emissions_factor_series_lb_CO2_per_kwh
         bau_emissions = self.bau_emissions()
@@ -1273,9 +1285,6 @@ class DataManager:
 
         electric_techs = [t for t in reopt_techs if t.startswith("PV") or t.startswith("WIND") or t.startswith("GENERATOR") or t.startswith("CHP")]
         electric_techs_bau = [t for t in reopt_techs_bau if t.startswith("PV") or t.startswith("WIND") or t.startswith("GENERATOR") or t.startswith("CHP")]
-
-        re_techs = [t for t in reopt_techs if t.startswith("PV") or t.startswith("WIND")]
-        re_techs_bau = [t for t in reopt_techs_bau if t.startswith("PV") or t.startswith("WIND")]
         
         if len(reopt_techs) > 0:
             non_storage_sales_tiers = [1, 2]
@@ -1465,7 +1474,6 @@ class DataManager:
             'TechsInClass': techs_in_class,
             'TechsByFuelType': techs_by_fuel_type,
             'ElectricTechs': electric_techs,
-            'RETechs': re_techs,
             'FuelBurningTechs': fb_techs,
             'TechsNoTurndown': techs_no_turndown,
             'ExportTiers': export_tiers,
@@ -1476,11 +1484,13 @@ class DataManager:
             'TechsByNMILRegime':TechsByNMILRegime,
             "GridEmissionsFactor": grid_emissions_factor,
             "TechEmissionsFactors": tech_emissions_factors,
-            "MinAnnualPercentRE": self.site.renewable_generation_min_pct,
-            "MaxAnnualPercentRE": self.site.renewable_generation_max_pct,
-            "MinPercentEmissionsReduction": self.site.emissions_reduction_max_pct,
-            "MaxPercentEmissionsReduction": emissions_reduction_max_pct,
-            "REAccountingMethod": self.site.renewable_generation_accounting_method,
+            "TechPercentRE": tech_pct_RE,
+            "TechPercentBiomass": tech_pct_biogenic,
+            "MinAnnualPercentREElec": self.site.renewable_electricity_min_pct,
+            "MaxAnnualPercentREElec": self.site.renewable_electricity_max_pct,
+            "MinPercentEmissionsReduction": self.site.emissions_reduction_min_pct,
+            "MaxPercentEmissionsReduction": self.site.emissions_reduction_max_pct,
+            "REElecAccountingMethod": self.site.renewable_electricity_accounting_method,
             "EmissionsAccountingMethod": self.site.emissions_reduction_accounting_method,
             "BAUYr1Emissions": bau_emissions,
             'ExportTiersByTech': rates_by_tech,
@@ -1607,7 +1617,6 @@ class DataManager:
             'TechsInClass': techs_in_class_bau,
             'TechsByFuelType': techs_by_fuel_type_bau,
             'ElectricTechs': electric_techs_bau,
-            'RETechs': re_techs_bau,
             'FuelBurningTechs': fb_techs_bau,
             'TechsNoTurndown': techs_no_turndown_bau,
             'ExportTiers': export_tiers_bau,
@@ -1618,11 +1627,13 @@ class DataManager:
             'TechsByNMILRegime':TechsByNMILRegime_bau,
             "GridEmissionsFactor": grid_emissions_factor,
             "TechEmissionsFactors": tech_emissions_factors_bau, 
-            "MinAnnualPercentRE": None,
-            "MaxAnnualPercentRE": None,
+            "TechPercentRE": tech_pct_RE_bau,
+            "TechPercentBiomass": tech_pct_biogenic_bau,
+            "MinAnnualPercentREElec": None,
+            "MaxAnnualPercentREElec": None,
             "MinPercentEmissionsReduction": None,
             "MaxPercentEmissionsReduction": None,
-            "REAccountingMethod": self.site.renewable_generation_accounting_method,
+            "REElecAccountingMethod": self.site.renewable_electricity_accounting_method,
             "EmissionsAccountingMethod": self.site.emissions_reduction_accounting_method,
             "BAUYr1Emissions": bau_emissions,
             'ExportTiersByTech': rates_by_tech_bau,

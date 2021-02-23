@@ -894,27 +894,20 @@ function add_cost_function(m, p)
 		0.0001*m[:MinChargeAdder] is added back into LCC when writing to results.  =#
 end
 
-function add_re_calcs_and_constraints(m,p)
-	# Only PV and Wind generation count as RE (CHP does not)
-	if p.REAccountingMethod == 1 # yes RE "credit" for exported RE
-		m[:AnnualREkWh] = @expression(m,p.TimeStepScaling*
-			(sum(p.ProductionFactor[t,ts] * p.LevelizationFactor[t] * m[:dvRatedProduction][t,ts] for t in p.RETechs, ts in p.TimeStep) #total RE generation
-			- sum(m[:dvProductionToStorage][b,t,ts]*(1-p.ChargeEfficiency[t,b]*p.DischargeEfficiency[b]) for t in p.RETechs, b in p.ElecStorage, ts in p.TimeStep) #minus battery efficiency losses.
-			- sum(m[:dvProductionToCurtail][t,ts] for t in p.RETechs, ts in p.TimeStep))) # minus curtailment. confirm CHP curtailment. 
-	elseif p.REAccountingMethod == 0 # no RE "credit" for exported RE
-	 	m[:AnnualREkWh] = @expression(m,p.TimeStepScaling*
-	 		(sum(p.ProductionFactor[t,ts] * p.LevelizationFactor[t] * m[:dvRatedProduction][t,ts] for t in p.RETechs, ts in p.TimeStep) #total RE generation
-	 		- sum(m[:dvProductionToStorage][b,t,ts]*(1-p.ChargeEfficiency[t,b]*p.DischargeEfficiency[b]) for t in p.RETechs, b in p.ElecStorage, ts in p.TimeStep) #minus battery efficiency losses.
-			- sum(m[:dvProductionToCurtail][t,ts] for t in p.RETechs, ts in p.TimeStep) # minus curtailment. confirm CHP curtailment.  
-			- sum(m[:dvProductionToGrid][t,u,ts] for t in p.RETechs, u in p.ExportTiers, ts in p.TimeStep))) # minus exported RE. 
+function add_re_elec_calcs_and_constraints(m,p)
+	# Renewable electricity 
+	m[:AnnualREEleckWh] = @expression(m,p.TimeStepScaling*
+		(sum(p.ProductionFactor[t,ts] * p.LevelizationFactor[t] * m[:dvRatedProduction][t,ts]*p.TechPercentRE[t] for t in p.ElectricTechs, ts in p.TimeStep) #total generation
+		- sum(m[:dvProductionToStorage][b,t,ts]*p.TechPercentRE[t]*(1-p.ChargeEfficiency[t,b]*p.DischargeEfficiency[b]) for t in p.ElectricTechs, b in p.ElecStorage, ts in p.TimeStep) #minus battery efficiency losses 
+		- sum(m[:dvProductionToCurtail][t,ts]*p.TechPercentRE[t] for t in p.ElectricTechs, ts in p.TimeStep) # minus curtailment. confirm CHP curtailment.  
+		- (1-p.REElecAccountingMethod)*sum(m[:dvProductionToGrid][t,u,ts]*p.TechPercentRE[t] for t in p.ElectricTechs, u in p.ExportTiers, ts in p.TimeStep))) # minus exported RE, if RE accounting method = 0.
 		# if battery ends up being able to discharge to grid, need to make sure only RE that is being consumed onsite are counted so battery doesn't become a back door for RE to grid. 
-	end
 	## Annual renewable electricity targets
-	if !isnothing(p.MinAnnualPercentRE)
-		@constraint(m, MinRECon, m[:AnnualREkWh] >= p.MinAnnualPercentRE[1]*p.TimeStepScaling*(sum(p.ElecLoad[ts] for ts in p.TimeStep)))
+	if !isnothing(p.MinAnnualPercentREElec)
+		@constraint(m, MinREElecCon, m[:AnnualREEleckWh] >= p.MinAnnualPercentREElec[1]*p.TimeStepScaling*(sum(p.ElecLoad[ts] for ts in p.TimeStep)))
 	end
-	if !isnothing(p.MaxAnnualPercentRE) 
-		@constraint(m, MaxRECon, m[:AnnualREkWh] <= p.MaxAnnualPercentRE[1]*p.TimeStepScaling*(sum(p.ElecLoad[ts] for ts in p.TimeStep)))
+	if !isnothing(p.MaxAnnualPercentREElec) 
+		@constraint(m, MaxREElecCon, m[:AnnualREEleckWh] <= p.MaxAnnualPercentREElec[1]*p.TimeStepScaling*(sum(p.ElecLoad[ts] for ts in p.TimeStep)))
 	end
 end
 
@@ -1078,12 +1071,12 @@ function reopt_run(m, p::Parameter)
 	add_util_fixed_and_min_charges(m, p)
 	
 	#if RE and/or emissions constraints apply, include now. otherwise save for add_site_results
-	if !isnothing(p.MinAnnualPercentRE) || !isnothing(p.MaxAnnualPercentRE) 
-		add_re_calcs_and_constraints(m,p)
-	end
-	if !isnothing(p.MinPercentEmissionsReduction) || !isnothing(p.MaxPercentEmissionsReduction)
-		add_emissions_calcs_and_constraints(m,p)
-	end
+	#if !isnothing(p.MinAnnualPercentREElec) || !isnothing(p.MaxAnnualPercentREElec) 
+	add_re_elec_calcs_and_constraints(m,p)
+	#end
+	#if !isnothing(p.MinPercentEmissionsReduction) || !isnothing(p.MaxPercentEmissionsReduction)
+	add_emissions_calcs_and_constraints(m,p)
+	#end
 
 	if !isempty(p.CHPTechs)
 		add_chp_hourly_om_charges(m, p)
@@ -1184,15 +1177,15 @@ end
 
 function add_site_results(m, p, r::Dict)
 	# if haven't already added RE and emissions calcs (e.g. these constraints were not part of the objective function)
-	if isnothing(p.MinAnnualPercentRE) && !isnothing(p.MaxAnnualPercentRE) 
-		add_re_calcs_and_constraints(m,p)
-	end
-	if isnothing(p.MinPercentEmissionsReduction) && !isnothing(p.MaxPercentEmissionsReduction)
-		add_emissions_calcs_and_constraints(m,p)
-	end
-	r["annual_re_kwh"] = round(value(m[:AnnualREkWh]), digits=4)
-	m[:AnnualREPercent] = @expression(m, m[:AnnualREkWh]/(sum(p.ElecLoad[ts] for ts in p.TimeStep)))
-	r["annual_re_percent"] = round(value(m[:AnnualREPercent]), digits=2)
+	#if isnothing(p.MinAnnualPercentREElec) && !isnothing(p.MaxAnnualPercentREElec) 
+	#	add_re_elec_calcs_and_constraints(m,p)
+	#end
+	#if isnothing(p.MinPercentEmissionsReduction) && !isnothing(p.MaxPercentEmissionsReduction)
+	#	add_emissions_calcs_and_constraints(m,p)
+	#end
+	r["annual_re_elec_kwh"] = round(value(m[:AnnualREEleckWh]), digits=4)
+	m[:AnnualREElecPercent] = @expression(m, m[:AnnualREEleckWh]/(sum(p.ElecLoad[ts] for ts in p.TimeStep)))
+	r["annual_re_elec_percent"] = round(value(m[:AnnualREElecPercent]), digits=2)
 	r["year_one_emissions_lbsCO2"] = round(value(m[:EmissionsYr1_Total_LbsCO2]), digits=2) 
 	r["year_one_emissionsreduction_percent"] = round(value(1-m[:EmissionsYr1_Total_LbsCO2]/p.BAUYr1Emissions), digits=4)
 	r["year_one_scope1_emissions_lbsCO2"] = round(value(m[:EmissionsYr1_Scope1_LbsCO2]), digits=2)
@@ -1531,7 +1524,7 @@ function add_boiler_results(m, p, r::Dict)
 			for ts in p.TimeStep))
 	r["total_boiler_fuel_cost"] = round(value(TotalBoilerFuelCharges * m[:r_tax_fraction_offtaker]), digits=3)
 	r["year_one_boiler_fuel_cost"] = round(value(TotalBoilerFuelCharges / p.pwf_fuel["BOILER"]), digits=3)
-	EmissionsYr1_Scope1_LbsCO2_boiler = calc_yr1_scope1_emissions(m,p; tech_array = ["BOILER"]])
+	EmissionsYr1_Scope1_LbsCO2_boiler = calc_yr1_scope1_emissions(m,p; tech_array = ["BOILER"])
 	r["year_one_boiler_emissions_scope1_lbsCO2"] = round(value(EmissionsYr1_Scope1_LbsCO2_boiler), digits=2)
 	nothing
 end

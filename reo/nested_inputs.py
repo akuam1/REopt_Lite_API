@@ -197,12 +197,12 @@ nested_input_definitions = {
         "max": 1.0e9,
         "description": "Area of roof in square feet available for PV siting"
       },
-      "renewable_generation_min_pct": {
+      "renewable_electricity_min_pct": {
         "type": "float",
         "min": 0,
         "description": "Minumum acceptable percent of total energy consumption provided by renewable energy."
       },
-      "renewable_generation_max_pct": {
+      "renewable_electricity_max_pct": {
         "type": "float",
         "min": 0,
         "description": "Maximum acceptable percent of total energy consumption provided by renewable energy."
@@ -221,7 +221,7 @@ nested_input_definitions = {
         "default": 0,
         "description": "Method for carbon emission accounting. Method 1 gives credits for exported electricity derived from onsite renewable resources, whereas Method 0 does not. "
       },
-      "renewable_generation_accounting_method": {
+      "renewable_electricity_accounting_method": {
         "type": "int",
         "restrict_to": [0,1],
         "default": 1,
@@ -1842,7 +1842,6 @@ nested_input_definitions = {
         },
         "existing_boiler_production_type_steam_or_hw": {
           "type": "str",
-          "description": "Boiler production type (hot_water, steam)",
           "restrict_to": ["hot_water", "steam"],
           "description": "Boiler thermal production type, hot water or steam"
         },
@@ -1859,7 +1858,7 @@ nested_input_definitions = {
         },
         "emissions_factor_lb_CO2_per_mmbtu": {
           "type": "float",
-          "description": "Pounds of carbon dioxide emitted per gallon of fuel burned"
+          "description": "Pounds of carbon dioxide emitted per mmbtu of fuel burned"
         }
       },
 

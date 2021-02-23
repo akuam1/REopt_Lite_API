@@ -90,14 +90,14 @@ nested_output_definitions = {
             },
 
             "Site": {
-              "year_one_renewable_generation_pct": {
+              "year_one_renewable_electricity_pct": {
                   "type": float,
-                  "description": "Percent of total energy consumption provided by renewable energy.",
+                  "description": "Percent of total electricity consumption provided by renewable energy.",
                   "units": "%"
                 },
-              "year_one_renewable_generation_kwh": {
+              "year_one_renewable_electricity_kwh": {
                   "type": int,
-                  "description": "Total annual renewable energy generation.",
+                  "description": "Total annual renewable electricity.",
                   "units": "kWh"
                 },
               "year_one_emissions_lb_CO2": {
@@ -125,14 +125,14 @@ nested_output_definitions = {
                 "description": "Total pounds of carbon dioxide offset by clean energy exports in the first year. Negative value indicates emissions offset. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
                 "units": "lb CO2"
               },
-              "year_one_renewable_generation_bau_pct": {
+              "year_one_renewable_electricity_bau_pct": {
                 "type": float,
-                "description": "Percent of total energy consumption provided by renewable energy in the BAU case.",
+                "description": "Percent of total electricity consumption provided by renewable energy in the BAU case.",
                 "units": "%"
               },
-              "year_one_renewable_generation_bau_kwh": {
+              "year_one_renewable_electricity_bau_kwh": {
                 "type": int,
-                "description": "Total annual renewable energy generation in the BAU case.",
+                "description": "Total annual renewable electricity in the BAU case.",
                 "units": "kWh"
               },
               "year_one_emissions_bau_lb_CO2": {
@@ -198,7 +198,7 @@ nested_output_definitions = {
                   "description": "Year one hourly time series of boiler thermal load",
                   "units": "mmbtu_per_hr"
                 },
-                "annual_calculated_boiler_fuel_load_mmbtu_bau": {
+                "annual_fuel_used_mmbtu_bau": {
                   "type": float,
                   "description": "Annual boiler fuel consumption calculated by summing up 8760 boiler fuel "
                                  "load profile in business-as-usual case.",
@@ -931,6 +931,11 @@ nested_output_definitions = {
                 "year_one_boiler_fuel_consumption_mmbtu": {
                   "type": float,
                   "description": "Annual average boiler fuel consumption",
+                  "units": "MMBtu"
+                },
+                "year_one_boiler_fuel_consumption_mmbtu_bau": {
+                  "type": float,
+                  "description": "Annual average boiler fuel consumption in the BAU case",
                   "units": "MMBtu"
                 },
                 "year_one_boiler_thermal_production_mmbtu": {
