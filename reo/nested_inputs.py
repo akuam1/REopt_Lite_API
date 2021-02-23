@@ -200,25 +200,19 @@ nested_input_definitions = {
       "renewable_generation_min_pct": {
         "type": "float",
         "min": 0,
-        "max": 1,
         "description": "Minumum acceptable percent of total energy consumption provided by renewable energy."
       },
       "renewable_generation_max_pct": {
         "type": "float",
         "min": 0,
-        "max": 1,
         "description": "Maximum acceptable percent of total energy consumption provided by renewable energy."
       },
       "emissions_reduction_min_pct": {
         "type": "float",
-        "min": 0,
-        "max": 1,
         "description": "Minumum acceptable percent of carbon emissions reduction relative to the business-as-usual case."
       },
       "emissions_reduction_max_pct": {
         "type": "float",
-        "min": 0,
-        "max": 1,
         "description": "Maximum acceptable percent of carbon emissions reduction relative to the business-as-usual case."
       },
       "emissions_reduction_accounting_method": {
@@ -627,6 +621,20 @@ nested_input_definitions = {
           "restrict_to": ["natural_gas", "landfill_bio_gas", "propane", "diesel_oil"],
           "description": "Boiler fuel type one of (natural_gas, landfill_bio_gas, propane, diesel_oil)"
         },
+        "boiler_fuel_percent_RE": {
+          "type": "float",
+          "default": 0.0,
+          "min": 0.0,
+          "max": 1.0,
+          "description": "Fraction of boiler fuel, on an energy basis, that is classified as renewable; for RE accounting purposes."
+        },
+        "boiler_fuel_percent_biogenic": {
+          "type": "float",
+          "default": 0.0,
+          "min": 0.0,
+          "max": 1.0,
+          "description": "Fraction of boiler fuel, on an energy basis, that is classified as biogenic (rather than fossil fuel); for emissions accounting purposes)"
+        },
         "boiler_fuel_blended_annual_rates_us_dollars_per_mmbtu": {
           "type": "float",
           "default": 0.0,
@@ -642,6 +650,20 @@ nested_input_definitions = {
           "default": 'natural_gas',
           "restrict_to": ["natural_gas", "landfill_bio_gas", "propane", "diesel_oil"],
           "description": "Boiler fuel type (natural_gas, landfill_bio_gas, propane, diesel_oil)"
+        },
+        "chp_fuel_percent_RE": {
+          "type": "float",
+          "default": 0.0,
+          "min": 0.0,
+          "max": 1.0,
+          "description": "Fraction of CHP fuel, on an energy basis, that is classified as renewable; for RE accounting purposes."
+        },
+        "chp_fuel_percent_biogenic": {
+          "type": "float",
+          "default": 0.0,
+          "min": 0.0,
+          "max": 1.0,
+          "description": "Fraction of CHP fuel, on an energy basis, that is classified as biogenic (rather than fossil fuel); for emissions accounting purposes)"
         },
         "chp_fuel_blended_annual_rates_us_dollars_per_mmbtu": {
           "type": "float",
@@ -1239,6 +1261,20 @@ nested_input_definitions = {
           "max": 1.0e3,
           "default": 0.00,
           "description": "diesel generator per unit production (variable) operations and maintenance costs in $/kWh"
+        },
+        "generator_fuel_percent_RE": {
+          "type": "float",
+          "default": 0.0,
+          "min": 0.0,
+          "max": 1.0,
+          "description": "Fraction of generator fuel, on an energy basis, that is classified as renewable; for RE accounting purposes."
+        },
+        "generator_fuel_percent_biogenic": {
+          "type": "float",
+          "default": 0.0,
+          "min": 0.0,
+          "max": 1.0,
+          "description": "Fraction of generator fuel, on an energy basis, that is classified as biogenic (rather than fossil fuel); for emissions accounting purposes)"
         },
         "diesel_fuel_cost_us_dollars_per_gallon": {
           "type": "float",
