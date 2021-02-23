@@ -174,7 +174,6 @@ def process_results(self, dfm_list, data, meta, saveToDB=True):
                                "average_yearly_PV{}_energy_produced".format(i),
                                "year_one_PV{}_energy_produced".format(i),
                                "average_yearly_energy_produced_PV{}".format(i),
-                               "year_one_PV{}_emissions_scope1_lbsCO2e".format(i),
                                "year_one_PV{}_emissions_nonscope_lbsCO2e".format(i),
                               ]
                 for k in pv_bau_keys:
@@ -544,13 +543,9 @@ def process_results(self, dfm_list, data, meta, saveToDB=True):
                         pv["station_distance_km"] = pv_model.station_distance_km
                         pv['lcoe_us_dollars_per_kwh'] = self.calculate_lcoe(pv, pv_model.__dict__, financials)
 
-                        pv["year_one_scope1_emissions_lb_CO2"] = self.results_dict.get(
-                            "year_one_PV{}_emissions_scope1_lbsCO2e".format(i))
                         pv["year_one_nonscope_emissions_lb_CO2"] = self.results_dict.get(
                             "year_one_PV{}_emissions_nonscope_lbsCO2e".format(i))
                         if not pv["average_yearly_energy_produced_bau_kwh"] is 0:
-                            pv["year_one_scope1_emissions_bau_lb_CO2"] = self.results_dict.get(
-                                "year_one_PV{}_emissions_scope1_lbsCO2e_bau".format(i))
                             pv["year_one_nonscope_emissions_bau_lb_CO2"] = self.results_dict.get(
                                 "year_one_PV{}_emissions_nonscope_lbsCO2e_bau".format(i))
                             
@@ -575,9 +570,6 @@ def process_results(self, dfm_list, data, meta, saveToDB=True):
                     self.nested_outputs["Scenario"]["Site"][name][
                         "year_one_power_production_series_kw"] = self.compute_total_power(name)
 
-                    self.nested_outputs["Scenario"]["Site"][name][
-                        "year_one_scope1_emissions_lb_CO2"] = self.results_dict.get(
-                        "year_one_wind_emissions_scope1_lbsCO2e")
                     self.nested_outputs["Scenario"]["Site"][name][
                         "year_one_nonscope_emissions_lb_CO2"] = self.results_dict.get(
                         "year_one_wind_emissions_nonscope_lbsCO2e")
@@ -740,6 +732,14 @@ def process_results(self, dfm_list, data, meta, saveToDB=True):
                     self.nested_outputs["Scenario"]["Site"][name][
                         "existing_gen_year_one_fuel_cost_us_dollars"] = self.results_dict.get(
                         "gen_year_one_fuel_cost_bau")
+                    self.nested_outputs["Scenario"]["Site"][name][
+                        "year_one_scope1_emissions_lb_CO2"] = self.results_dict.get(
+                        "year_one_generator_emissions_scope1_lbsCO2e")
+                    if not self.nested_outputs["Scenario"]["Site"][name]["fuel_used_gal_bau"] is 0:
+                        self.nested_outputs["Scenario"]["Site"][name][
+                            "year_one_scope1_emissions_bau_lb_CO2"] = self.results_dict.get(
+                            "year_one_generator_emissions_scope1_lbsCO2e_bau")
+
                 elif name == "CHP":
                     self.nested_outputs["Scenario"]["Site"][name][
                         "size_kw"] = self.results_dict.get("chp_kw")
@@ -763,6 +763,13 @@ def process_results(self, dfm_list, data, meta, saveToDB=True):
                         "year_one_thermal_to_tes_series_mmbtu_per_hour"] = self.results_dict.get("chp_thermal_to_tes_series")
                     self.nested_outputs["Scenario"]["Site"][name][
                         "year_one_thermal_to_waste_series_mmbtu_per_hour"] = self.results_dict.get("chp_thermal_to_waste_series")
+                    self.nested_outputs["Scenario"]["Site"][name][
+                        "year_one_scope1_emissions_lb_CO2"] = self.results_dict.get(
+                        "year_one_chp_emissions_scope1_lbsCO2e")
+                    if not self.nested_outputs["Scenario"]["Site"][name]["fuel_used_gal_bau"] is 0:
+                        self.nested_outputs["Scenario"]["Site"][name][
+                            "year_one_scope1_emissions_bau_lb_CO2"] = self.results_dict.get(
+                            "year_one_chp_emissions_scope1_lbsCO2e_bau")
                 elif name == "Boiler":
                     self.nested_outputs["Scenario"]["Site"][name][
                         "year_one_boiler_fuel_consumption_series_mmbtu_per_hr"] = self.results_dict.get("fuel_to_boiler_series")
@@ -776,6 +783,13 @@ def process_results(self, dfm_list, data, meta, saveToDB=True):
                         "year_one_boiler_fuel_consumption_mmbtu"] = self.results_dict.get("year_one_fuel_to_boiler_mmbtu")
                     self.nested_outputs["Scenario"]["Site"][name][
                         "year_one_boiler_thermal_production_mmbtu"] = self.results_dict.get("year_one_boiler_thermal_production_mmbtu")
+                    self.nested_outputs["Scenario"]["Site"][name][
+                        "year_one_scope1_emissions_lb_CO2"] = self.results_dict.get(
+                        "year_one_boiler_emissions_scope1_lbsCO2e")
+                    if not self.nested_outputs["Scenario"]["Site"][name]["fuel_used_gal_bau"] is 0:
+                        self.nested_outputs["Scenario"]["Site"][name][
+                            "year_one_scope1_emissions_bau_lb_CO2"] = self.results_dict.get(
+                            "year_one_boiler_emissions_scope1_lbsCO2e_bau")
                 elif name == "ElectricChiller":
                     self.nested_outputs["Scenario"]["Site"][name][
                         "year_one_electric_chiller_thermal_to_load_series_ton"] = [x / TONHOUR_TO_KWHT for x in self.results_dict.get("electric_chiller_to_load_series")]
@@ -823,20 +837,6 @@ def process_results(self, dfm_list, data, meta, saveToDB=True):
                         "year_one_cold_tes_soc_series_pct"] = self.results_dict.get("cold_tes_pct_soc_series")
                     if np.isnan(sum(self.results_dict.get("cold_tes_pct_soc_series") or [np.nan])):
                         self.nested_outputs["Scenario"]["Site"][name]["year_one_cold_tes_soc_series_pct"] = None
-
-                    self.nested_outputs["Scenario"]["Site"][name][
-                        "year_one_scope1_emissions_lb_CO2"] = self.results_dict.get(
-                        "year_one_generator_emissions_scope1_lbsCO2e")
-                    self.nested_outputs["Scenario"]["Site"][name][
-                        "year_one_nonscope_emissions_lb_CO2"] = self.results_dict.get(
-                        "year_one_generator_emissions_nonscope_lbsCO2e")
-                    if not self.nested_outputs["Scenario"]["Site"][name]["fuel_used_gal_bau"] is 0:
-                        self.nested_outputs["Scenario"]["Site"][name][
-                            "year_one_scope1_emissions_bau_lb_CO2"] = self.results_dict.get(
-                            "year_one_generator_emissions_scope1_lbsCO2e_bau")
-                        self.nested_outputs["Scenario"]["Site"][name][
-                            "year_one_nonscope_emissions_bau_lb_CO2"] = self.results_dict.get(
-                            "year_one_generator_emissions_nonscope_lbsCO2e_bau")
 
             # outputs that depend on multiple object results:
             future_replacement_cost, present_replacement_cost = self.replacement_costs_future_and_present

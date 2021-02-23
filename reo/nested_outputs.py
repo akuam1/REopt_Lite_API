@@ -102,28 +102,28 @@ nested_output_definitions = {
                 },
               "year_one_emissions_lb_CO2": {
                   "type": int,
-                  "description": "Total equivalent pounds of carbon dioxide emissions associated with the site's energy consumption in the first year.",
-                  "units": "lb CO2e"
+                  "description": "Total pounds of carbon dioxide emissions associated with the site's energy consumption in the first year.",
+                  "units": "lb CO2"
                 },
               "year_one_emissions_reduction_pct": {
                   "type": float,
-                  "description": "Percent reduction in total equivalent pounds of carbon dioxide emissions in the optimal case relative to the BAU case to the ",
+                  "description": "Percent reduction in total pounds of carbon dioxide emissions in the optimal case relative to the BAU case to the ",
                   "units": "%"
                 },
               "year_one_scope1_emissions_lb_CO2": {
                 "type": int,
-                "description": "Total equivalent pounds of carbon dioxide generated from onsite fuel consumption in the first year (Scope 1 emissions).",
-                "units": "lb CO2e"
+                "description": "Total pounds of carbon dioxide generated from onsite fuel consumption in the first year (Scope 1 emissions).",
+                "units": "lb CO2"
               },
               "year_one_scope2_emissions_lb_CO2": {
                 "type": int,
-                "description": "Total equivalent pounds of carbon dioxide associated with energy (rather than fuel) purchases (Scope 2 emissions) in the first year, currently limited to electric grid purchases.",
-                "units": "lb CO2e"
+                "description": "Total pounds of carbon dioxide associated with energy (rather than fuel) purchases (Scope 2 emissions) in the first year, currently limited to electric grid purchases.",
+                "units": "lb CO2"
               },
               "year_one_nonscope_emissions_lb_CO2": {
                 "type": int,
-                "description": "Total equivalent pounds of carbon dioxide offset by clean energy exports in the first year. Negative value indicates emissions offset. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
-                "units": "lb CO2e"
+                "description": "Total pounds of carbon dioxide offset by clean energy exports in the first year. Negative value indicates emissions offset. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
+                "units": "lb CO2"
               },
               "year_one_renewable_generation_bau_pct": {
                 "type": float,
@@ -137,23 +137,23 @@ nested_output_definitions = {
               },
               "year_one_emissions_bau_lb_CO2": {
                 "type": int,
-                "description": "Total equivalent pounds of carbon dioxide emissions associated with the site's energy consumption in the first year in the BAU case.",
-                "units": "lb CO2e"
+                "description": "Total pounds of carbon dioxide emissions associated with the site's energy consumption in the first year in the BAU case.",
+                "units": "lb CO2"
               },
               "year_one_scope1_emissions_bau_lb_CO2": {
                 "type": int,
-                "description": "Total equivalent pounds of carbon dioxide generated from onsite fuel consumption (Scope 1 emissions) in the first year in the BAU case.",
-                "units": "lb CO2e"
+                "description": "Total pounds of carbon dioxide generated from onsite fuel consumption (Scope 1 emissions) in the first year in the BAU case.",
+                "units": "lb CO2"
               },
               "year_one_scope2_emissions_bau_lb_CO2": {
                 "type": int,
-                "description": "Total equivalent pounds of carbon dioxide associated with energy (rather than fuel) purchases (Scope 2 emissions) in the first year in the BAU case, currently limited to electric grid purchases.",
-                "units": "lb CO2e"
+                "description": "Total pounds of carbon dioxide associated with energy (rather than fuel) purchases (Scope 2 emissions) in the first year in the BAU case, currently limited to electric grid purchases.",
+                "units": "lb CO2"
               },
               "year_one_nonscope_emissions_bau_lb_CO2": {
                 "type": int,
-                "description": "Total equivalent pounds of carbon dioxide offset by clean energy exports in the first year in the BAU case. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
-                "units": "lb CO2e"
+                "description": "Total pounds of carbon dioxide offset by clean energy exports in the first year in the BAU case. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
+                "units": "lb CO2"
               },
               "LoadProfile": {
                 "year_one_electric_load_series_kw": {
@@ -432,25 +432,15 @@ nested_output_definitions = {
                   "description": "Year one PV power curtailed during outage time series",
                   "units": "kW"
                 },
-                "year_one_scope1_emissions_lb_CO2": {
-                  "type": int,
-                  "description": "Total equivalent pounds of carbon dioxide generated from onsite PV in the first year (Scope 1 emissions).",
-                  "units": "lb CO2e"
-                },
                 "year_one_nonscope_emissions_lb_CO2": {
                   "type": int,
-                  "description": "Total equivalent pounds of carbon dioxide by PV exports in the first year. Negative value indicates emissions offset. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
-                  "units": "lb CO2e"
-                },
-                "year_one_scope1_emissions_bau_lb_CO2": {
-                  "type": int,
-                  "description": "Total equivalent pounds of carbon dioxide generated from onsite PV in the first year (Scope 1 emissions) in the BAU case.",
-                  "units": "lb CO2e"
+                  "description": "Total pounds of carbon dioxide by PV exports in the first year. Negative value indicates emissions offset. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
+                  "units": "lb CO2"
                 },
                 "year_one_nonscope_emissions_bau_lb_CO2": {
                   "type": int,
-                  "description": "Total equivalent pounds of carbon dioxide by PV exports in the first year in the BAU case. Negative value indicates emissions offset. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
-                  "units": "lb CO2e"
+                  "description": "Total pounds of carbon dioxide by PV exports in the first year in the BAU case. Negative value indicates emissions offset. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
+                  "units": "lb CO2"
                 },
               },
 
@@ -501,15 +491,10 @@ nested_output_definitions = {
                   "description": "Year one Wind power curtailed during outage time series",
                   "units": "kW"
                 },
-                "year_one_scope1_emissions_lb_CO2": {
-                  "type": int,
-                  "description": "Total equivalent pounds of carbon dioxide generated from onsite wind in the first year (Scope 1 emissions).",
-                  "units": "lb CO2e"
-                },
                 "year_one_nonscope_emissions_lb_CO2": {
                   "type": int,
-                  "description": "Total equivalent pounds of carbon dioxide by wind exports in the first year. Negative value indicates emissions offset. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
-                  "units": "lb CO2e"
+                  "description": "Total pounds of carbon dioxide by wind exports in the first year. Negative value indicates emissions offset. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
+                  "units": "lb CO2"
                 },
               },
 
@@ -689,12 +674,12 @@ nested_output_definitions = {
                 },
                 "year_one_scope2_emissions_lb_CO2": {
                   "type": int,
-                  "description": "Total equivalent pounds of carbon dioxide associated with grid electricity purchases (Scope 2 emissions) in the first year. Calculated by default from hourly emissions estimates except in AK and HI.",
-                  "units": "lb CO2e"
+                  "description": "Total pounds of carbon dioxide associated with grid electricity purchases (Scope 2 emissions) in the first year. Calculated by default from hourly emissions estimates except in AK and HI.",
+                  "units": "lb CO2"
                 },
                 "year_one_scope2_emissions_bau_lb_CO2": {
                   "type": int,
-                  "description": "Total equivalent pounds of carbon dioxide emitted from BAU utility electricity use in the first year in the BAU case. Calculated by default from hourly emissions estimates except in AK and HI.",
+                  "description": "Total pounds of carbon dioxide emitted from BAU utility electricity use in the first year in the BAU case. Calculated by default from hourly emissions estimates except in AK and HI.",
                   "units": "lb CO2"
                 },
                 "year_one_chp_standby_cost_us_dollars": {
@@ -854,24 +839,14 @@ nested_output_definitions = {
                 },
                 "year_one_scope1_emissions_lb_CO2": {
                   "type": int,
-                  "description": "Total equivalent pounds of carbon dioxide generated from an onsite generator in the first year (Scope 1 emissions).",
-                  "units": "lb CO2e"
-                },
-                "year_one_nonscope_emissions_lb_CO2": {
-                  "type": int,
-                  "description": "Total equivalent pounds of carbon dioxide by generator exports in the first year. Negative value indicates emissions offset. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
-                  "units": "lb CO2e"
+                  "description": "Total pounds of carbon dioxide emitted from an onsite generator in the first year (Scope 1 emissions).",
+                  "units": "lb CO2"
                 },
                 "year_one_scope1_emissions_bau_lb_CO2": {
                   "type": float,
-                  "description": "Total equivalent pounds of carbon dioxide generated from onsite PV in the first year (Scope 1 emissions).",
-                  "units": "lb CO2e"
+                  "description": "Total pounds of carbon dioxide emitted from an onsite generator in the first year in the BAU case (Scope 1 emissions).",
+                  "units": "lb CO2"
                 },
-                "year_one_nonscope_emissions_bau_lb_CO2": {
-                  "type": int,
-                  "description": "Total equivalent pounds of carbon dioxide by PV exports in the first year. Negative value indicates emissions offset. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
-                  "units": "lb CO2e"
-                }
               },
 
               "CHP": {
@@ -930,15 +905,15 @@ nested_output_definitions = {
                   "description": "Year one hourly time series of CHP thermal to waste heat",
                   "units": "MMBtu/hr"
                 },
-                "year_one_emissions_lb_C02": {
+                "year_one_scope1_emissions_lb_CO2": {
                   "type": int,
-                  "description": "Total equivalent pounds of carbon dioxide emitted from CHP fuels consumed on site use in the first year.",
-                  "units": "hours"
+                  "description": "Total pounds of carbon dioxide emitted from CHP in the first year (Scope 1 emissions).",
+                  "units": "lb CO2"
                 },
-                "year_one_emissions_bau_lb_C02": {
-                  "type": int,
-                  "description": "Total equivalent pounds of carbon dioxide emitted from CHP fuels consumed on site use in the first year in the BAU case.",
-                  "units": "hours"
+                "year_one_scope1_emissions_bau_lb_CO2": {
+                  "type": float,
+                  "description": "Total pounds of carbon dioxide emitted from CHP in the first year in the BAU case (Scope 1 emissions).",
+                  "units": "lb CO2"
                 },
               },
 
@@ -973,16 +948,16 @@ nested_output_definitions = {
                   "description": "Year one hourly time series of CHP thermal to Hot TES",
                   "units": "MMBtu/hr"
                 },
-                "year_one_emissions_lb_C02": {
+                "year_one_scope1_emissions_lb_CO2": {
                   "type": int,
-                  "description": "Total equivalent pounds of carbon dioxide emitted from boiler fuels consumed on site use in the first year.",
-                  "units": "hours"
+                  "description": "Total pounds of carbon dioxide emitted from boiler fuels consumed on site use in the first year (Scope 1 emissions).",
+                  "units": "lb CO2"
                 },
-                "year_one_emissions_bau_lb_C02": {
-                  "type": int,
-                  "description": "Total equivalent pounds of carbon dioxide emitted from boiler fuels consumed on site use in the first year in the BAU case.",
-                  "units": "hours"
-                }
+                "year_one_scope1_emissions_bau_lb_CO2": {
+                  "type": float,
+                  "description": "Total pounds of carbon dioxide emitted from boiler fuels consumed on site use in the first year in the BAU case (Scope 1 emissions).",
+                  "units": "lb CO2"
+                },
               },
 
               "ElectricChiller": {
