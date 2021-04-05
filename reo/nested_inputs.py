@@ -628,13 +628,6 @@ nested_input_definitions = {
           "max": 1.0,
           "description": "Fraction of boiler fuel, on an energy basis, that is classified as renewable; for RE accounting purposes."
         },
-        "boiler_fuel_percent_biogenic": {
-          "type": "float",
-          "default": 0.0,
-          "min": 0.0,
-          "max": 1.0,
-          "description": "Fraction of boiler fuel, on an energy basis, that is classified as biogenic (rather than fossil fuel); for emissions accounting purposes)"
-        },
         "boiler_fuel_blended_annual_rates_us_dollars_per_mmbtu": {
           "type": "float",
           "default": 0.0,
@@ -657,13 +650,6 @@ nested_input_definitions = {
           "min": 0.0,
           "max": 1.0,
           "description": "Fraction of CHP fuel, on an energy basis, that is classified as renewable; for RE accounting purposes."
-        },
-        "chp_fuel_percent_biogenic": {
-          "type": "float",
-          "default": 0.0,
-          "min": 0.0,
-          "max": 1.0,
-          "description": "Fraction of CHP fuel, on an energy basis, that is classified as biogenic (rather than fossil fuel); for emissions accounting purposes)"
         },
         "chp_fuel_blended_annual_rates_us_dollars_per_mmbtu": {
           "type": "float",
@@ -1268,13 +1254,6 @@ nested_input_definitions = {
           "min": 0.0,
           "max": 1.0,
           "description": "Fraction of generator fuel, on an energy basis, that is classified as renewable; for RE accounting purposes."
-        },
-        "generator_fuel_percent_biogenic": {
-          "type": "float",
-          "default": 0.0,
-          "min": 0.0,
-          "max": 1.0,
-          "description": "Fraction of generator fuel, on an energy basis, that is classified as biogenic (rather than fossil fuel); for emissions accounting purposes)"
         },
         "diesel_fuel_cost_us_dollars_per_gallon": {
           "type": "float",

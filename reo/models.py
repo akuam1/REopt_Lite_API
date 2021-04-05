@@ -403,12 +403,10 @@ class FuelTariffModel(models.Model):
     boiler_fuel_blended_annual_rates_us_dollars_per_mmbtu = models.FloatField(null=True, blank=True)
     boiler_fuel_blended_monthly_rates_us_dollars_per_mmbtu = ArrayField(models.FloatField(null=True, blank=True), default=list, null=True)
     boiler_fuel_percent_RE = models.FloatField(null=True, blank=True)
-    boiler_fuel_percent_biogenic = models.FloatField(null=True, blank=True)
     chp_fuel_type = models.TextField(null=True, blank=True)
     chp_fuel_blended_annual_rates_us_dollars_per_mmbtu = models.FloatField(null=True, blank=True)
     chp_fuel_blended_monthly_rates_us_dollars_per_mmbtu = ArrayField(models.FloatField(null=True, blank=True), default=list, null=True)
     chp_fuel_percent_RE = models.FloatField(null=True, blank=True)
-    chp_fuel_percent_biogenic = models.FloatField(null=True, blank=True)
 
     # Outputs
     total_boiler_fuel_cost_us_dollars = models.FloatField(null=True, blank=True)
@@ -636,7 +634,6 @@ class GeneratorModel(models.Model):
     fuel_intercept_gal_per_hr = models.FloatField(null=True, blank=True)
     fuel_avail_gal = models.FloatField(null=True, blank=True)
     generator_fuel_percent_RE = models.FloatField(null=True, blank=True)
-    generator_fuel_percent_biogenic = models.FloatField(null=True, blank=True)
     min_turn_down_pct = models.FloatField(null=True, blank=True)
     generator_only_runs_during_grid_outage = models.BooleanField(null=True, blank=True)
     generator_sells_energy_back_to_grid = models.BooleanField(null=True, blank=True)

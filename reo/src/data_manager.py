@@ -679,7 +679,6 @@ class DataManager:
 
         tech_emissions_factors = list()
         tech_pct_RE = list()
-        tech_pct_biogenic = list()
 
         charge_efficiency = list()
         discharge_efficiency = list()
@@ -716,23 +715,19 @@ class DataManager:
                     om_cost_us_dollars_per_hr_per_kw_rated.append(0.0)
                     tech_emissions_factors.append(float(eval('self.' + tech + '.emissions_factor_lb_CO2_per_gal')))
                     tech_pct_RE.append(float(eval(self.generator.generator_fuel_percent_RE)))
-                    tech_pct_biogenic.append(float(eval(self.generator.generator_fuel_percent_biogenic)))
                 elif tech.lower() == 'chp':
                     om_cost_us_dollars_per_kwh.append(float(eval('self.' + tech + '.om_cost_us_dollars_per_kwh')))
                     om_cost_us_dollars_per_hr_per_kw_rated.append(float(eval('self.' + tech + '.om_cost_us_dollars_per_hr_per_kw_rated')))
                     tech_emissions_factors.append(float(eval('self.' + tech + '.emissions_factor_lb_CO2_per_mmbtu')))
                     tech_pct_RE.append(float(eval(self.fuel_tariff.chp_fuel_percent_RE)))
-                    tech_pct_biogenic.append(float(eval(self.fuel_tariff.chp_fuel_percent_biogenic)))
                 elif tech.lower() == 'boiler': 
                     tech_emissions_factors.append(float(eval('self.' + tech + '.emissions_factor_lb_CO2_per_mmbtu')))
                     tech_pct_RE.append(float(eval(self.fuel_tariff.boiler_fuel_percent_RE)))
-                    tech_pct_biogenic.append(float(eval(self.fuel_tariff.boiler_fuel_percent_biogenic)))
                 else:
                     om_cost_us_dollars_per_kwh.append(0.0)
                     om_cost_us_dollars_per_hr_per_kw_rated.append(0.0)
                     tech_emissions_factors.append(0.0)
                     tech_pct_RE.append(1.0)
-                    tech_pct_biogenic.append(0.0)
 
                 for location in ['roof', 'ground', 'both']:
                     if tech.startswith('pv'):
@@ -754,7 +749,7 @@ class DataManager:
                om_cost_us_dollars_per_kw, om_cost_us_dollars_per_kwh, om_cost_us_dollars_per_hr_per_kw_rated, \
                production_factor, charge_efficiency, discharge_efficiency, \
                electric_derate, chp_thermal_prod_factor, \
-               tech_emissions_factors, tech_pct_RE, tech_pct_biogenic
+               tech_emissions_factors, tech_pct_RE
 
     def _get_REopt_techs(self, techs):
         reopt_techs = list()
@@ -1181,12 +1176,12 @@ class DataManager:
             om_cost_us_dollars_per_kwh, om_cost_us_dollars_per_hr_per_kw_rated, production_factor, \
             charge_efficiency, discharge_efficiency, \
             electric_derate, chp_thermal_prod_factor, \
-            tech_emissions_factors, tech_pct_RE, tech_pct_biogenic = self._get_REopt_array_tech_load(self.available_techs)
+            tech_emissions_factors, tech_pct_RE = self._get_REopt_array_tech_load(self.available_techs)
         tech_to_location_bau, derate_bau, om_cost_us_dollars_per_kw_bau, \
             om_cost_us_dollars_per_kwh_bau, om_cost_us_dollars_per_hr_per_kw_rated_bau, production_factor_bau, \
             charge_efficiency_bau, discharge_efficiency_bau, \
             electric_derate_bau, chp_thermal_prod_factor_bau, \
-            tech_emissions_factors_bau, tech_pct_RE_bau, tech_pct_biogenic_bau = self._get_REopt_array_tech_load(self.bau_techs)
+            tech_emissions_factors_bau, tech_pct_RE_bau = self._get_REopt_array_tech_load(self.bau_techs)
 
         grid_emissions_factor = self.elec_tariff.emissions_factor_series_lb_CO2_per_kwh
         bau_emissions = self.bau_emissions()
@@ -1485,7 +1480,6 @@ class DataManager:
             "GridEmissionsFactor": grid_emissions_factor,
             "TechEmissionsFactors": tech_emissions_factors,
             "TechPercentRE": tech_pct_RE,
-            "TechPercentBiomass": tech_pct_biogenic,
             "MinAnnualPercentREElec": self.site.renewable_electricity_min_pct,
             "MaxAnnualPercentREElec": self.site.renewable_electricity_max_pct,
             "MinPercentEmissionsReduction": self.site.emissions_reduction_min_pct,
@@ -1628,7 +1622,6 @@ class DataManager:
             "GridEmissionsFactor": grid_emissions_factor,
             "TechEmissionsFactors": tech_emissions_factors_bau, 
             "TechPercentRE": tech_pct_RE_bau,
-            "TechPercentBiomass": tech_pct_biogenic_bau,
             "MinAnnualPercentREElec": None,
             "MaxAnnualPercentREElec": None,
             "MinPercentEmissionsReduction": None,

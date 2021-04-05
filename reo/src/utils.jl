@@ -193,7 +193,6 @@ Base.@kwdef struct Parameter
     BAUYr1Emissions::Float64
     GridEmissionsFactor::Array{Float64,1}
     TechEmissionsFactors::AxisArray
-    TechPercentBiomass::AxisArray
 
 	# Added for CHP
 	HotTES::Array{String,1}
