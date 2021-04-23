@@ -105,8 +105,8 @@ nested_input_definitions = {
     "timeout_seconds": {
       "type": "int",
       "min": 1,
-      "max": 420,
-      "default": 420,
+      "max": 700,
+      "default": 700,
       "description": "The number of seconds allowed before the optimization times out"
     },
     "user_uuid": {
@@ -200,32 +200,35 @@ nested_input_definitions = {
       "renewable_electricity_min_pct": {
         "type": "float",
         "min": 0,
-        "description": "Minumum acceptable percent of total energy consumption provided by renewable energy."
+        "description": "Minumum acceptable percent of total energy consumption provided by renewable energy annually."
       },
       "renewable_electricity_max_pct": {
         "type": "float",
         "min": 0,
-        "description": "Maximum acceptable percent of total energy consumption provided by renewable energy."
+        "description": "Maximum acceptable percent of total energy consumption provided by renewable energy annually."
       },
       "emissions_reduction_min_pct": {
         "type": "float",
-        "description": "Minumum acceptable percent of carbon emissions reduction relative to the business-as-usual case."
+        "description": "Minumum acceptable percent of carbon emissions reduction relative to the business-as-usual case, in Year 1."
       },
       "emissions_reduction_max_pct": {
         "type": "float",
-        "description": "Maximum acceptable percent of carbon emissions reduction relative to the business-as-usual case."
+        "description": "Maximum acceptable percent of carbon emissions reduction relative to the business-as-usual case, in Year 1."
       },
-      "emissions_reduction_accounting_method": {
-        "type": "int",
-        "restrict_to": [0,1],
-        "default": 0,
-        "description": "Method for carbon emission accounting. Method 1 gives credits for exported electricity derived from onsite renewable resources, whereas Method 0 does not. "
+      "include_exported_elec_emissions_in_total": {
+        "type": "bool",
+        "default": False,
+        "description": "Include the emissions reductions (or increases) in grid emissions associated with exported onsite electrical generation in the calculation of Year 1 emissions."  
       },
-      "renewable_electricity_accounting_method": {
-        "type": "int",
-        "restrict_to": [0,1],
-        "default": 1,
-        "description": "Method for calculating the percent of electricity that is sourced from onsite renewable resources. Method 1 gives credits for exported electricity derived from renewable resources, whereas Method 0 does not. "
+      "include_outage_emissions_in_total": {
+        "type": "bool",
+        "default": True,
+        "description": "Not hooked up yet. Include the emissions occurring during simulated grid outage in the calculation of Year 1 emissions. Only used if performing resilience analysis."  
+      },
+      "include_exported_renewable_electricity_in_total": {
+        "type": "bool",
+        "default": True,
+        "description": "True indicates site retains credits for exported electricity derived from renewable resources."
       },
       "outdoor_air_temp_degF": {
         "type": "list_of_float",

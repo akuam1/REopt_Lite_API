@@ -949,7 +949,7 @@ class DataManager:
                 grid_to_load_kw[i] = 0
 
         #If no net emissions accounting, no credit for RE grid exports:
-        if self.site.emissions_reduction_accounting_method == 0:
+        if self.site.include_exported_elec_emissions_in_total is False:
             grid_to_load_kw = np.array([i if i > 0 else 0 for i in grid_to_load_kw])
         # Might need to add additional logic to match reopt.jl curtailment approach...
         grid_emissions_lb_CO2_per_year = self.steplength*sum(np.array(self.elec_tariff.emissions_factor_series_lb_CO2_per_kwh) * grid_to_load_kw)
@@ -1484,8 +1484,9 @@ class DataManager:
             "MaxAnnualPercentREElec": self.site.renewable_electricity_max_pct,
             "MinPercentEmissionsReduction": self.site.emissions_reduction_min_pct,
             "MaxPercentEmissionsReduction": self.site.emissions_reduction_max_pct,
-            "REElecAccountingMethod": self.site.renewable_electricity_accounting_method,
-            "EmissionsAccountingMethod": self.site.emissions_reduction_accounting_method,
+            "IncludeExportedREElecinTotal": self.site.include_exported_renewable_electricity_in_total,
+            "IncludeExportedElecEmissionsInTotal": self.site.include_exported_elec_emissions_in_total,
+            "IncludeOutageEmissionsInTotal": self.site.include_outage_emissions_in_total,
             "BAUYr1Emissions": bau_emissions,
             'ExportTiersByTech': rates_by_tech,
             'TechsByExportTier': [techs_by_export_tier[k] for k in export_tiers],
@@ -1626,8 +1627,9 @@ class DataManager:
             "MaxAnnualPercentREElec": None,
             "MinPercentEmissionsReduction": None,
             "MaxPercentEmissionsReduction": None,
-            "REElecAccountingMethod": self.site.renewable_electricity_accounting_method,
-            "EmissionsAccountingMethod": self.site.emissions_reduction_accounting_method,
+            "IncludeExportedREElecinTotal": self.site.include_exported_renewable_electricity_in_total,
+            "IncludeExportedElecEmissionsInTotal": self.site.include_exported_elec_emissions_in_total,
+            "IncludeOutageEmissionsInTotal": self.site.include_outage_emissions_in_total,
             "BAUYr1Emissions": bau_emissions,
             'ExportTiersByTech': rates_by_tech_bau,
             'TechsByExportTier': [techs_by_export_tier_bau[k] for k in export_tiers_bau],

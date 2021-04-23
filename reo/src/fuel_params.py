@@ -106,7 +106,6 @@ class FuelParams:
                 techs_by_fuel_type.append([tech.upper()])
                 fuel_types.append("CHPFUEL")
 
-
         return fuel_costs, fuel_limit, fuel_types, techs_by_fuel_type, fuel_burn_slope, fuel_burn_intercept
 
     def _get_chp_unique_params(self, chp_techs, chp=None):

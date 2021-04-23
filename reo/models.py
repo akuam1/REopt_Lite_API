@@ -145,35 +145,35 @@ class SiteModel(models.Model):
     outdoor_air_temp_degF = ArrayField(models.FloatField(blank=True, null=True), default=list, null=True)
     elevation_ft = models.FloatField(null=True, blank=True)
 
-    year_one_emissions_bau_input_lb_CO2 = models.FloatField(null=True, blank=True)
+    preprocessed_year_one_emissions_bau_lb_CO2 = models.FloatField(null=True, blank=True)
     renewable_electricity_min_pct = models.FloatField(null=True, blank=True)
     renewable_electricity_max_pct = models.FloatField(null=True, blank=True)
     emissions_reduction_min_pct = models.FloatField(null=True, blank=True)
     emissions_reduction_max_pct = models.FloatField(null=True, blank=True)
-    emissions_reduction_accounting_method = models.IntegerField(null=True, blank=True)
-    renewable_electricity_accounting_method = models.IntegerField(null=True, blank=True)
+    include_exported_renewable_electricity_in_total = models.BooleanField(null=True, blank=True)
+    include_exported_elec_emissions_in_total = models.BooleanField(null=True, blank=True)
+    include_outage_emissions_in_total = models.BooleanField(null=True, blank=True)
 
     #outputs
     year_one_renewable_electricity_pct = models.FloatField(null=True, blank=True)
     year_one_renewable_electricity_kwh = models.FloatField(null=True, blank=True)
+    year_one_renewable_heat_pct = models.FloatField(null=True, blank=True)
+    year_one_renewable_heat_mmbtu = models.FloatField(null=True, blank=True)
     year_one_emissions_reduction_pct = models.FloatField(null=True, blank=True)
     year_one_emissions_lb_CO2 = models.FloatField(null=True, blank=True)
-    year_one_scope1_emissions_series_lb_CO2 = ArrayField(models.FloatField(null=True, blank=True), default=list)
-    year_one_scope2_emissions_series_lb_CO2 = ArrayField(models.FloatField(null=True, blank=True), default=list)
-    year_one_nonscope_emissions_series_lb_CO2 = ArrayField(models.FloatField(null=True, blank=True), default=list)
-    year_one_scope1_emissions_lb_CO2 = models.FloatField(null=True, blank=True)
-    year_one_scope2_emissions_lb_CO2 = models.FloatField(null=True, blank=True)
-    year_one_nonscope_emissions_lb_CO2 = models.FloatField(null=True, blank=True)
+    year_one_emissions_from_fuelburn = models.FloatField(null=True, blank=True)
+    year_one_emissions_from_elec_grid_purchase = models.FloatField(null=True, blank=True)
+    year_one_emissions_offset_from_elec_exports = models.FloatField(null=True, blank=True)
+    year_one_cost_of_emissions_reduction_us_dollars_per_ton_CO2 = models.FloatField(null=True, blank=True)
 
     year_one_renewable_electricity_bau_pct = models.FloatField(null=True, blank=True)
     year_one_renewable_electricity_bau_kwh = models.FloatField(null=True, blank=True)
+    year_one_renewable_heat_bau_pct = models.FloatField(null=True, blank=True)
+    year_one_renewable_heat_bau_mmbtu = models.FloatField(null=True, blank=True)
     year_one_emissions_bau_lb_CO2 = models.FloatField(null=True, blank=True)
-    year_one_scope1_emissions_series_bau_lb_CO2 = ArrayField(models.FloatField(null=True, blank=True), default=list)
-    year_one_scope2_emissions_series_bau_lb_CO2 = ArrayField(models.FloatField(null=True, blank=True), default=list)
-    year_one_nonscope_emissions_series_bau_lb_CO2 = ArrayField(models.FloatField(null=True, blank=True), default=list)
-    year_one_scope1_emissions_bau_lb_CO2 = models.FloatField(null=True, blank=True)
-    year_one_scope2_emissions_bau_lb_CO2 = models.FloatField(null=True, blank=True)
-    year_one_nonscope_emissions_bau_lb_CO2 = models.FloatField(null=True, blank=True)
+    year_one_emissions_from_fuelburn_bau = models.FloatField(null=True, blank=True)
+    year_one_emissions_from_elec_grid_purchase_bau = models.FloatField(null=True, blank=True)
+    year_one_emissions_offset_from_elec_exports_bau = models.FloatField(null=True, blank=True)
 
     @classmethod
     def create(cls, **kwargs):
@@ -341,7 +341,6 @@ class ElectricTariffModel(models.Model):
             models.FloatField(null=True, blank=True, default=list))
     urdb_response = PickledObjectField(null=True, editable=True)
     add_blended_rates_to_urdb_rate = models.BooleanField(null=False)
-    emissions_factor_series_lb_CO2_per_kwh = ArrayField(models.FloatField(null=True, blank=True), default=list, null=True)
     chp_standby_rate_us_dollars_per_kw_per_month = models.FloatField(blank=True, null=True)
     chp_does_not_reduce_demand_charges = models.BooleanField(null=True, blank=True)
     add_tou_energy_rates_to_urdb_rate = models.BooleanField(null=True, blank=True)
@@ -380,10 +379,8 @@ class ElectricTariffModel(models.Model):
     year_one_energy_supplied_kwh = models.FloatField(null=True, blank=True)
     year_one_energy_supplied_kwh_bau = models.FloatField(null=True, blank=True)
 
-    year_one_scope2_emissions_lb_CO2 = models.FloatField(null=True, blank=True)
-    year_one_scope2_emissions_series_lb_CO2 = ArrayField(models.FloatField(null=True, blank=True), default=list)
-    year_one_scope2_emissions_bau_lb_CO2 = models.FloatField(null=True, blank=True)
-    year_one_scope2_emissions_series_bau_lb_CO2 = ArrayField(models.FloatField(null=True, blank=True), default=list)
+    year_one_emissions_lb_CO2 = models.FloatField(null=True, blank=True)
+    year_one_emissions_bau_lb_CO2 = models.FloatField(null=True, blank=True)
 
     year_one_chp_standby_cost_us_dollars = models.FloatField(null=True, blank=True)
     total_chp_standby_cost_us_dollars = models.FloatField(null=True, blank=True)
@@ -493,10 +490,8 @@ class PVModel(models.Model):
             models.FloatField(null=True, blank=True), null=True, blank=True, default=list)
     existing_pv_om_cost_us_dollars = models.FloatField(null=True, blank=True)
     lcoe_us_dollars_per_kwh = models.FloatField(null=True, blank=True)
-    year_one_nonscope_emissions_series_lb_CO2 = ArrayField(models.FloatField(null=True, blank=True), default=list)
-    year_one_nonscope_emissions_lb_CO2 = models.FloatField(null=True, blank=True)
-    year_one_nonscope_emissions_series_bau_lb_CO2 = ArrayField(models.FloatField(null=True, blank=True), default=list)
-    year_one_nonscope_emissions_bau_lb_CO2 = models.FloatField(null=True, blank=True)
+    year_one_exported_emissions_offset_lb_CO2 = models.FloatField(null=True, blank=True)
+    year_one_exported_emissions_offset_bau_lb_CO2 = models.FloatField(null=True, blank=True)
 
     @classmethod
     def create(cls, **kwargs):
@@ -563,10 +558,8 @@ class WindModel(models.Model):
 
     year_one_curtailed_production_series_kw = ArrayField(
             models.FloatField(null=True, blank=True), null=True, blank=True, default=list)
-    year_one_nonscope_emissions_series_lb_CO2 = ArrayField(models.FloatField(null=True, blank=True), default=list)
-    year_one_nonscope_emissions_lb_CO2 = models.FloatField(null=True, blank=True)
-    year_one_nonscope_emissions_series_bau_lb_CO2 = ArrayField(models.FloatField(null=True, blank=True), default=list)
-    year_one_nonscope_emissions_bau_lb_CO2 = models.FloatField(null=True, blank=True)
+    year_one_exported_emissions_offset_lb_CO2 = models.FloatField(null=True, blank=True)
+    year_one_exported_emissions_offset_bau_lb_CO2 = models.FloatField(null=True, blank=True)
 
     @classmethod
     def create(cls, **kwargs):
@@ -686,14 +679,8 @@ class GeneratorModel(models.Model):
     existing_gen_total_variable_om_cost_us_dollars = models.FloatField(null=True, blank=True)
     existing_gen_total_fuel_cost_us_dollars = models.FloatField(null=True, blank=True)
     existing_gen_total_fixed_om_cost_us_dollars = models.FloatField(null=True, blank=True)
-    year_one_scope1_emissions_lb_CO2 = models.FloatField(null=True, blank=True)
-    year_one_nonscope_emissions_lb_CO2 = models.FloatField(null=True, blank=True)
-    year_one_scope1_emissions_series_lb_CO2 = ArrayField(models.FloatField(null=True, blank=True), default=list)
-    year_one_nonscope_emissions_series_lb_CO2  = ArrayField(models.FloatField(null=True, blank=True), default=list)
-    year_one_scope1_emissions_bau_lb_CO2 = models.FloatField(null=True, blank=True)
-    year_one_nonscope_emissions_bau_lb_CO2 = models.FloatField(null=True, blank=True)
-    year_one_scope1_emissions_series_bau_lb_CO2 = ArrayField(models.FloatField(null=True, blank=True), default=list)
-    year_one_nonscope_emissions_series_bau_lb_CO2 = ArrayField(models.FloatField(null=True, blank=True), default=list)
+    year_one_emissions_lb_CO2 = models.FloatField(null=True, blank=True)
+    year_one_emissions_bau_lb_CO2 = models.FloatField(null=True, blank=True)
 
     @classmethod
     def create(cls, **kwargs):

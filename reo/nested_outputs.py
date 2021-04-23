@@ -100,7 +100,32 @@ nested_output_definitions = {
                   "description": "Total annual renewable electricity.",
                   "units": "kWh"
                 },
+              "year_one_renewable_heat_pct": {
+                  "type": float,
+                  "description": "Percent of total electricity consumption provided by renewable energy.",
+                  "units": "%"
+                },
+              "year_one_renewable_heat_mmbtu": {
+                  "type": int,
+                  "description": "Total annual renewable electricity.",
+                  "units": "mmbtu"
+                },
               "year_one_emissions_lb_CO2": {
+                  "type": int,
+                  "description": "Total pounds of carbon dioxide emissions associated with the site's energy consumption in the first year.",
+                  "units": "lb CO2"
+                },
+              "year_one_emissions_from_fuelburn": {
+                  "type": int,
+                  "description": "Total pounds of carbon dioxide emissions associated with the site's energy consumption in the first year.",
+                  "units": "lb CO2"
+                },
+              "year_one_emissions_from_elec_grid_purchase": {
+                  "type": int,
+                  "description": "Total pounds of carbon dioxide emissions associated with the site's energy consumption in the first year.",
+                  "units": "lb CO2"
+                },
+              "year_one_emissions_offset_from_elec_exports": {
                   "type": int,
                   "description": "Total pounds of carbon dioxide emissions associated with the site's energy consumption in the first year.",
                   "units": "lb CO2"
@@ -110,21 +135,11 @@ nested_output_definitions = {
                   "description": "Percent reduction in total pounds of carbon dioxide emissions in the optimal case relative to the BAU case to the ",
                   "units": "%"
                 },
-              "year_one_scope1_emissions_lb_CO2": {
-                "type": int,
-                "description": "Total pounds of carbon dioxide generated from onsite fuel consumption in the first year (Scope 1 emissions).",
-                "units": "lb CO2"
-              },
-              "year_one_scope2_emissions_lb_CO2": {
-                "type": int,
-                "description": "Total pounds of carbon dioxide associated with energy (rather than fuel) purchases (Scope 2 emissions) in the first year, currently limited to electric grid purchases.",
-                "units": "lb CO2"
-              },
-              "year_one_nonscope_emissions_lb_CO2": {
-                "type": int,
-                "description": "Total pounds of carbon dioxide offset by clean energy exports in the first year. Negative value indicates emissions offset. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
-                "units": "lb CO2"
-              },
+              "year_one_cost_of_emissions_reduction_us_dollars_per_ton_CO2": {
+                  "type": float,
+                  "description": "Cost of emissions reduction per ton CO2, assuming NPV is distributed as annuity throughout analysis period",
+                  "units": "%"
+                },
               "year_one_renewable_electricity_bau_pct": {
                 "type": float,
                 "description": "Percent of total electricity consumption provided by renewable energy in the BAU case.",
@@ -135,26 +150,26 @@ nested_output_definitions = {
                 "description": "Total annual renewable electricity in the BAU case.",
                 "units": "kWh"
               },
+              "year_one_renewable_heat_bau_pct": {
+                  "type": float,
+                  "description": "Percent of total electricity consumption provided by renewable energy.",
+                  "units": "%"
+                },
+              "year_one_renewable_heat_bau_mmbtu": {
+                  "type": int,
+                  "description": "Total annual renewable electricity.",
+                  "units": "mmbtu"
+                },
               "year_one_emissions_bau_lb_CO2": {
                 "type": int,
                 "description": "Total pounds of carbon dioxide emissions associated with the site's energy consumption in the first year in the BAU case.",
                 "units": "lb CO2"
-              },
-              "year_one_scope1_emissions_bau_lb_CO2": {
+                },
+              "preprocessed_year_one_emissions_bau_lb_CO2": {
                 "type": int,
-                "description": "Total pounds of carbon dioxide generated from onsite fuel consumption (Scope 1 emissions) in the first year in the BAU case.",
+                "description": "Total pounds of carbon dioxide emissions associated with the site's energy consumption in the first year in the BAU case.",
                 "units": "lb CO2"
-              },
-              "year_one_scope2_emissions_bau_lb_CO2": {
-                "type": int,
-                "description": "Total pounds of carbon dioxide associated with energy (rather than fuel) purchases (Scope 2 emissions) in the first year in the BAU case, currently limited to electric grid purchases.",
-                "units": "lb CO2"
-              },
-              "year_one_nonscope_emissions_bau_lb_CO2": {
-                "type": int,
-                "description": "Total pounds of carbon dioxide offset by clean energy exports in the first year in the BAU case. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
-                "units": "lb CO2"
-              },
+                },
               "LoadProfile": {
                 "year_one_electric_load_series_kw": {
                   "type": "list_of_float",
@@ -432,14 +447,14 @@ nested_output_definitions = {
                   "description": "Year one PV power curtailed during outage time series",
                   "units": "kW"
                 },
-                "year_one_nonscope_emissions_lb_CO2": {
+                "year_one_exported_emissions_offset_lb_CO2": {
                   "type": int,
-                  "description": "Total pounds of carbon dioxide by PV exports in the first year. Negative value indicates emissions offset. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
+                  "description": "Total pounds of carbon dioxide offset by PV exports in the first year. (Positive value indicates emissions offset.)",
                   "units": "lb CO2"
                 },
-                "year_one_nonscope_emissions_bau_lb_CO2": {
+                "year_one_exported_emissions_bau_lb_CO2": {
                   "type": int,
-                  "description": "Total pounds of carbon dioxide by PV exports in the first year in the BAU case. Negative value indicates emissions offset. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
+                  "description": "Total pounds of carbon dioxide offset by PV exports in the first year in the BAU case. (Positive value indicates emissions offset.)",
                   "units": "lb CO2"
                 },
               },
@@ -491,9 +506,9 @@ nested_output_definitions = {
                   "description": "Year one Wind power curtailed during outage time series",
                   "units": "kW"
                 },
-                "year_one_nonscope_emissions_lb_CO2": {
+                "year_one_exported_emissions_offset_lb_CO2": {
                   "type": int,
-                  "description": "Total pounds of carbon dioxide by wind exports in the first year. Negative value indicates emissions offset. According to the Greenhouse Gas Protocol, these emission offsets do not technically count towards an organization's emissions reductions (i.e. they fall outside of Scope 1 or Scope 2 emissions) but can be reported as additional information.",
+                  "description": "Total pounds of carbon dioxide by wind exports in the first year. Positive value indicates emissions offset.",
                   "units": "lb CO2"
                 },
               },
@@ -672,12 +687,12 @@ nested_output_definitions = {
                   "description": "Year one energy supplied from grid to load in the business-as-usual scenario",
                   "units": "kWh"
                 },
-                "year_one_scope2_emissions_lb_CO2": {
+                "year_one_emissions_lb_CO2": {
                   "type": int,
-                  "description": "Total pounds of carbon dioxide associated with grid electricity purchases (Scope 2 emissions) in the first year. Calculated by default from hourly emissions estimates except in AK and HI.",
+                  "description": "Total pounds of carbon dioxide associated with grid electricity purchases in the first year. Calculated by default from hourly emissions estimates except in AK and HI.",
                   "units": "lb CO2"
                 },
-                "year_one_scope2_emissions_bau_lb_CO2": {
+                "year_one_emissions_bau_lb_CO2": {
                   "type": int,
                   "description": "Total pounds of carbon dioxide emitted from BAU utility electricity use in the first year in the BAU case. Calculated by default from hourly emissions estimates except in AK and HI.",
                   "units": "lb CO2"
@@ -837,14 +852,14 @@ nested_output_definitions = {
                   "description": "Year one fuel cost for existing diesel generator system",
                   "units": "$"
                 },
-                "year_one_scope1_emissions_lb_CO2": {
+                "year_one_emissions_lb_CO2": {
                   "type": int,
-                  "description": "Total pounds of carbon dioxide emitted from an onsite generator in the first year (Scope 1 emissions).",
+                  "description": "Total pounds of carbon dioxide emitted from an onsite generator in the first year.",
                   "units": "lb CO2"
                 },
-                "year_one_scope1_emissions_bau_lb_CO2": {
+                "year_one_emissions_bau_lb_CO2": {
                   "type": float,
-                  "description": "Total pounds of carbon dioxide emitted from an onsite generator in the first year in the BAU case (Scope 1 emissions).",
+                  "description": "Total pounds of carbon dioxide emitted from an onsite generator in the first year in the BAU case.",
                   "units": "lb CO2"
                 },
               },
@@ -905,14 +920,14 @@ nested_output_definitions = {
                   "description": "Year one hourly time series of CHP thermal to waste heat",
                   "units": "MMBtu/hr"
                 },
-                "year_one_scope1_emissions_lb_CO2": {
+                "year_one_emissions_lb_CO2": {
                   "type": int,
-                  "description": "Total pounds of carbon dioxide emitted from CHP in the first year (Scope 1 emissions).",
+                  "description": "Total pounds of carbon dioxide emitted from CHP in the first year.",
                   "units": "lb CO2"
                 },
-                "year_one_scope1_emissions_bau_lb_CO2": {
+                "year_one_emissions_bau_lb_CO2": {
                   "type": float,
-                  "description": "Total pounds of carbon dioxide emitted from CHP in the first year in the BAU case (Scope 1 emissions).",
+                  "description": "Total pounds of carbon dioxide emitted from CHP in the first year in the BAU case.",
                   "units": "lb CO2"
                 },
               },
@@ -953,14 +968,14 @@ nested_output_definitions = {
                   "description": "Year one hourly time series of CHP thermal to Hot TES",
                   "units": "MMBtu/hr"
                 },
-                "year_one_scope1_emissions_lb_CO2": {
+                "year_one_emissions_lb_CO2": {
                   "type": int,
-                  "description": "Total pounds of carbon dioxide emitted from boiler fuels consumed on site use in the first year (Scope 1 emissions).",
+                  "description": "Total pounds of carbon dioxide emitted from boiler fuels consumed on site use in the first year.",
                   "units": "lb CO2"
                 },
-                "year_one_scope1_emissions_bau_lb_CO2": {
+                "year_one_emissions_bau_lb_CO2": {
                   "type": float,
-                  "description": "Total pounds of carbon dioxide emitted from boiler fuels consumed on site use in the first year in the BAU case (Scope 1 emissions).",
+                  "description": "Total pounds of carbon dioxide emitted from boiler fuels consumed on site use in the first year in the BAU case.",
                   "units": "lb CO2"
                 },
               },

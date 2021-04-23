@@ -71,16 +71,18 @@ class Site(object):
             renewable_electricity_max_pct=None,
             emissions_reduction_min_pct=None,
             emissions_reduction_max_pct=None,
-            emissions_reduction_accounting_method=None,
-            renewable_electricity_accounting_method=None,
+            include_exported_elec_emissions_in_total=None,
+            include_outage_emissions_in_total=None,
+            include_exported_renewable_electricity_in_total=None,
             **kwargs):
 
         self.renewable_electricity_min_pct = renewable_electricity_min_pct
         self.renewable_electricity_max_pct = renewable_electricity_max_pct
         self.emissions_reduction_min_pct = emissions_reduction_min_pct
         self.emissions_reduction_max_pct = emissions_reduction_max_pct
-        self.emissions_reduction_accounting_method = emissions_reduction_accounting_method
-        self.renewable_electricity_accounting_method = renewable_electricity_accounting_method
+        self.include_exported_elec_emissions_in_total = include_exported_elec_emissions_in_total
+        self.include_outage_emissions_in_total = include_outage_emissions_in_total
+        self.include_exported_renewable_electricity_in_total = include_exported_renewable_electricity_in_total
 
         self.land_acres = land_acres
         self.roof_squarefeet = roof_squarefeet

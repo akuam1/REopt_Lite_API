@@ -32,39 +32,13 @@ import os
 from tastypie.test import ResourceTestCaseMixin
 from reo.nested_to_flat_output import nested_to_flat
 from django.test import TestCase
-from reo.models import ModelManager
+from reo.models import ModelManagero
 from reo.utilities import check_common_outputs
 
 
 class REandEmissionsContraintTests(ResourceTestCaseMixin, TestCase):
     REopt_tol = 1e-2
-
-    # order of tests:
-    # Initially, no net metering / monetary credit for exports
-    # - existing + new PV, new wind, new batt
-    #   -- yes export credit
-    #       --- min RE
-    #       --- min ER
-    #   -- no export credit
-    #       --- min RE
-    #       --- min ER
-    # - no batt. (yes new + existing PV, wind)
-    #   -- yes export credit
-    #       --- min RE
-    #       --- min ER
-    #   -- no export credit
-    #       --- min RE
-    #       --- min ER
-    # Then, add net metering and fix min and max
-    # - no batt (yes new + existing PV, wind)
-    #   -- yes export credit
-    #       --- min & max RE
-    #       --- min & max ER
-    #   -- no export credit
-    #       --- min & max RE
-    #       --- min & max ER
-
-
+    
     def setUp(self):
         super(REandEmissionsContraintTests, self).setUp()
         self.reopt_base = '/v1/job/'
@@ -73,675 +47,145 @@ class REandEmissionsContraintTests(ResourceTestCaseMixin, TestCase):
     def get_response(self, data):
         return self.api_client.post(self.reopt_base, format='json', data=data)
     
-    # For the initial eight tests below,
-    # due to the curtailment formulation, 
-    # the model is choosing to curtail unless there is credit (net metering or wholesale rates) given for exports
-    
-    def test_yesexportcredit_minRE(self):
-        """
-        Test scenario with
-        - existing PV
-        - new PV, wind, and storage enabled
-        - %RE accounting method = 1 (yes credit for exported RE)
-        - emissions accounting method = 1 (yes credit for exported RE)
-        - 90% annual RE target with RE credit for grid exports
-        """
+    def test_RE_and_ER(self):
+        '''
+        Test structure for RE and emissions targets.
+        Runs a sweep of various scenarios () and checks logic of calculations and application of constraints.
+        '''
+        # inputs
+        RE_target_totest = [None,0.4] ##used for min and max #for test, if RE_target = None, then ER target = 0.4
+        include_exported_RE_in_total_totest = [True,False] #,1] #0 or 1
+        include_exported_elec_emissions_totest = [True,False] #[0,1] #0 or 1
+        no_battery_totest = [0,1] #,1] #0 or 1 (0 = PV+batt, 1 = PV only)
+        net_metering_totest = [0,1] #[0,1] #0 or 1
+        elec_only_totest = [1] #0 or 1
+        # need build out thermal tests once those variables are hooked up
+        # also resilience x clean energy targets (need to hook up include_outage_emissions_in_total first)
 
-        nested_data = json.load(open(self.test_post, 'rb'))
-        nested_data['Scenario']['Site']['renewable_electricity_min_pct'] = 0.90
-        nested_data['Scenario']['Site']['renewable_electricity_accounting_method'] = 1
-        nested_data['Scenario']['Site']['emissions_reduction_accounting_method'] = 1
-        nested_data['Scenario']['Site']['PV']['existing_kw'] = 10.0
-        nested_data['Scenario']['Site']['Storage']['max_kw'] = 100.0
-        nested_data['Scenario']['Site']['Storage']['max_kwh'] = 10000.0
-        nested_data['Scenario']['Site']['Wind']['max_kw'] = 100
+        for RE_target in RE_target_totest:
+            if RE_target is None:
+                ER_target = 0.4
+            for include_exported_RE_in_total in include_exported_RE_in_total_totest:
+                for include_exported_elec_emissions_in_total in include_exported_elec_emissions_totest:
+                    for no_battery in no_battery_totest:
+                        for net_metering in net_metering_totest:
+                            for elec_only in elec_only_totest:
+                                print(RE_target,", ",\
+                                    ER_target,", ",\
+                                    include_exported_RE_in_total,", ",\
+                                    include_exported_elec_emissions_in_total,", ",\
+                                    no_battery,", ",\
+                                    net_metering,",",\
+                                    elec_only,'\n')
+                                # inputs - automated:
+                                nested_data = json.load(open(self.test_post, 'rb'))
+                                annual_elec_load_kwh = 100000
+                                annual_heat_load_mmbtu = 100000      
+                                nat_gas_dollars_per_mmbtu = 3      
+                                nested_data['Scenario']['Site']['LoadProfile']['annual_kwh'] = annual_elec_load_kwh
+                                nested_data['Scenario']['Site']['include_exported_RE_in_total'] = include_exported_RE_in_total
+                                nested_data['Scenario']['Site']['include_exported_elec_emissions_in_total'] = include_exported_elec_emissions_in_total
+                                if RE_target is not None:
+                                    nested_data['Scenario']['Site']['renewable_electricity_min_pct'] = RE_target
+                                    #nested_data['Scenario']['Site']['renewable_electricity_max_pct'] = RE_target
+                                if ER_target is not None:
+                                    nested_data['Scenario']['Site']['emissions_reduction_min_pct'] = ER_target
+                                    #nested_data['Scenario']['Site']['emissions_reduction_max_pct'] = ER_target                            
+                                if net_metering == 0:
+                                    nested_data['Scenario']['Site']['ElectricTariff']['net_metering_limit_kw'] = 0
+                                else:
+                                    nested_data['Scenario']['Site']['ElectricTariff']['net_metering_limit_kw'] = 1000
+                                nested_data['Scenario']['Site']['PV']['existing_kw'] = 10.0
+                                nested_data['Scenario']['Site']['Wind']['max_kw'] = 100
+                                if no_battery == 0:
+                                    nested_data['Scenario']['Site']['Storage']['max_kw'] = 10000.0
+                                    nested_data['Scenario']['Site']['Storage']['max_kwh'] = 100000.0
+                                elif no_battery == 1:
+                                    nested_data['Scenario']['Site']['Storage']['max_kw'] = 0
+                                    nested_data['Scenario']['Site']['Storage']['max_kwh'] = 0
+                                if elec_only == 0:
+                                    nested_data['Scenario']['Site']['LoadProfileBoilerFuel']['annual_mmbtu'] = annual_heat_load_mmbtu
+                                    nested_data['Scenario']['Site']['FuelTariff']['boiler_fuel_blended_annual_rates_us_dollars_per_mmbtu'] = nat_gas_dollars_per_mmbtu
+                                    nested_data['Scenario']['Site']['FuelTariff']['chp_fuel_blended_annual_rates_us_dollars_per_mmbtu'] = nat_gas_dollars_per_mmbtu
+                                    nested_data['Scenario']['Site']['FuelTariff']['boiler_fuel_percent_RE'] = 0.0
+                                    nested_data['Scenario']['Site']['FuelTariff']['chp_fuel_percent_RE'] = 0.50
+                                    nested_data['Scenario']['Site']['CHP']['max_kw'] = 10000
+                                    nested_data['Scenario']['Site']['HotTES']['max_gal'] = 10000
 
-        resp = self.get_response(data=nested_data)
-        self.assertHttpCreated(resp)
-        r = json.loads(resp.content)
-        run_uuid = r.get('run_uuid')
-        d = ModelManager.make_response(run_uuid=run_uuid)
+                                # post & poll:
+                                resp = self.get_response(data=nested_data)
+                                self.assertHttpCreated(resp)
+                                r = json.loads(resp.content)
+                                run_uuid = r.get('run_uuid')
+                                d = ModelManager.make_response(run_uuid=run_uuid)
 
-        # Recommended system sizes - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['size_kw'], 81.7313, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kw'], 16.9244, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kwh'], 132.23, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['size_kw'], 23.708, places=1)
-        # Year 1 Site RE / emissions - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_pct'], 0.9, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_kwh'], 90000.0,places=0)
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_lb_CO2'], 15054.12, places=0)
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_reduction_pct'], 0.88, places=2)
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_lb_CO2'], 0.0, places=0)
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_lb_CO2'], 15054.12, places=0)
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_lb_CO2'], 0,places=0) 
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_lb_CO2'],  15054.12,places=0)
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0)
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0) 
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0) 
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0) 
-        # Year 1 Site RE / emissions - BAU case
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_pct'], 0.14,places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_kwh'], 13542.62,places=0)
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2'], 127811.53,places=0)
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_bau_lb_CO2'], 127811.53,places=0)
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_bau_lb_CO2'], 0.0,places=0)
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_bau_lb_CO2'],127811.53, places=0)
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        #self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_bau_lb_CO2'],0.0, places=0)
-
-    '''
-    def test_yesexportcredit_minER(self):
-        """
-        Test scenario with
-        - existing PV
-        - new PV, wind, and storage enabled
-        - %RE accounting method = 1 (yes credit for exported RE)
-        - emissions accounting method = 1 (yes credit for exported RE)
-        - 90% annual RE target with RE credit for grid exports
-        """
-
-        nested_data = json.load(open(self.test_post, 'rb'))
-        nested_data['Scenario']['Site']['emissions_reduction_min_pct'] = 0.90
-        nested_data['Scenario']['Site']['renewable_electricity_accounting_method'] = 1
-        nested_data['Scenario']['Site']['emissions_reduction_accounting_method'] = 1
-        nested_data['Scenario']['Site']['PV']['existing_kw'] = 10.0
-        nested_data['Scenario']['Site']['Storage']['max_kw'] = 100.0
-        nested_data['Scenario']['Site']['Storage']['max_kwh'] = 10000.0
-        nested_data['Scenario']['Site']['Wind']['max_kw'] = 100
-
-        resp = self.get_response(data=nested_data)
-        self.assertHttpCreated(resp)
-        r = json.loads(resp.content)
-        run_uuid = r.get('run_uuid')
-        d = ModelManager.make_response(run_uuid=run_uuid)
-
-        # Recommended system sizes - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['size_kw'], 78.8617, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kw'], 16.88, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kwh'], 129.697, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['size_kw'], 22.2391, places=1)
-        # Year 1 Site RE / emissions - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_pct'], 0.89, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_kwh'], 88736.24,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_lb_CO2'], 12771.33, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_reduction_pct'], 0.9, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_lb_CO2'], 0.0, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_lb_CO2'], 12771.33, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_lb_CO2'], 0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_lb_CO2'], 12771.33,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0) 
-        # Year 1 Site RE / emissions - BAU case
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_pct'], 0.14,places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_kwh'], 13542.62,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_bau_lb_CO2'],127811.53, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_bau_lb_CO2'],0.0, places=0)
-    
-    def test_noexportcredit_minRE(self):
-        """
-        Test scenario with
-        - existing PV
-        - new PV, wind, and storage enabled
-        - %RE accounting method = 1 (yes credit for exported RE)
-        - emissions accounting method = 1 (yes credit for exported RE)
-        - 90% annual RE target with RE credit for grid exports
-        """
-
-        nested_data = json.load(open(self.test_post, 'rb'))
-        nested_data['Scenario']['Site']['renewable_electricity_min_pct'] = 0.90
-        nested_data['Scenario']['Site']['renewable_electricity_accounting_method'] = 0
-        nested_data['Scenario']['Site']['emissions_reduction_accounting_method'] = 0
-        nested_data['Scenario']['Site']['PV']['existing_kw'] = 10.0
-        nested_data['Scenario']['Site']['Storage']['max_kw'] = 100.0
-        nested_data['Scenario']['Site']['Storage']['max_kwh'] = 10000.0
-        nested_data['Scenario']['Site']['Wind']['max_kw'] = 100
-
-        resp = self.get_response(data=nested_data)
-        self.assertHttpCreated(resp)
-        r = json.loads(resp.content)
-        run_uuid = r.get('run_uuid')
-        d = ModelManager.make_response(run_uuid=run_uuid)
-
-        # Recommended system sizes - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['size_kw'], 81.7313, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kw'], 16.9244, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kwh'], 132.23, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['size_kw'], 23.708, places=1)
-        # Year 1 Site RE / emissions - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_pct'], 0.9, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_kwh'], 90000.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_lb_CO2'], 15054.12, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_reduction_pct'], 0.88, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_lb_CO2'], 0.0, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_lb_CO2'], 15054.12, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_lb_CO2'], 0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_lb_CO2'], 15054.12,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0) 
-        # Year 1 Site RE / emissions - BAU case
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_pct'], 0.14,places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_kwh'], 13542.62,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_bau_lb_CO2'],127811.53, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_bau_lb_CO2'],0.0, places=0)
-    
-    def test_noexportcredit_minER(self):
-        """
-        Test scenario with
-        - existing PV
-        - new PV, wind, and storage enabled
-        - %RE accounting method = 1 (yes credit for exported RE)
-        - emissions accounting method = 1 (yes credit for exported RE)
-        - 90% annual RE target with RE credit for grid exports
-        """
-
-        nested_data = json.load(open(self.test_post, 'rb'))
-        nested_data['Scenario']['Site']['emissions_reduction_min_pct'] = 0.90
-        nested_data['Scenario']['Site']['renewable_electricity_accounting_method'] = 0
-        nested_data['Scenario']['Site']['emissions_reduction_accounting_method'] = 0
-        nested_data['Scenario']['Site']['PV']['existing_kw'] = 10.0
-        nested_data['Scenario']['Site']['Storage']['max_kw'] = 100.0
-        nested_data['Scenario']['Site']['Storage']['max_kwh'] = 10000.0
-        nested_data['Scenario']['Site']['Wind']['max_kw'] = 100
-
-        resp = self.get_response(data=nested_data)
-        self.assertHttpCreated(resp)
-        r = json.loads(resp.content)
-        run_uuid = r.get('run_uuid')
-        d = ModelManager.make_response(run_uuid=run_uuid)
-
-        # Recommended system sizes - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['size_kw'], 78.8292, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kw'], 16.88, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kwh'], 129.655, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['size_kw'], 22.2391, places=1)
-        # Year 1 Site RE / emissions - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_pct'], 0.89, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_kwh'], 88727.74,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_lb_CO2'], 12781.15, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_reduction_pct'], 0.9, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_lb_CO2'], 0.0, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_lb_CO2'], 12781.15, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_lb_CO2'], 0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_lb_CO2'], 12781.15,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0) 
-        # Year 1 Site RE / emissions - BAU case
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_pct'], 0.14,places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_kwh'], 13542.62,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_bau_lb_CO2'],127811.53, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_bau_lb_CO2'],0.0, places=0)
-    
-    # TEST NO BATTERIES. 
-
-    def test_yesexportcredit_minRE_NObatt(self):
-        """
-        Test scenario with
-        - existing PV
-        - new PV, wind, and storage enabled
-        - %RE accounting method = 1 (yes credit for exported RE)
-        - emissions accounting method = 1 (yes credit for exported RE)
-        - 90% annual RE target with RE credit for grid exports
-        """
-
-        nested_data = json.load(open(self.test_post, 'rb'))
-        nested_data['Scenario']['Site']['renewable_electricity_min_pct'] = 0.90
-        nested_data['Scenario']['Site']['renewable_electricity_accounting_method'] = 1
-        nested_data['Scenario']['Site']['emissions_reduction_accounting_method'] = 1
-        nested_data['Scenario']['Site']['PV']['existing_kw'] = 10.0
-        nested_data['Scenario']['Site']['Storage']['max_kw'] = 0.0
-        nested_data['Scenario']['Site']['Storage']['max_kwh'] = 0.0
-        nested_data['Scenario']['Site']['Wind']['max_kw'] = 1000
-
-        resp = self.get_response(data=nested_data)
-        self.assertHttpCreated(resp)
-        r = json.loads(resp.content)
-        run_uuid = r.get('run_uuid')
-        d = ModelManager.make_response(run_uuid=run_uuid)
-
-        # Recommended system sizes - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['size_kw'],255.878, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kw'], 0.0, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kwh'], 0.0, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['size_kw'], 265.0181, places=1)
-        # Year 1 Site RE / emissions - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_pct'], 0.9, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_kwh'], 90000.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_lb_CO2'], 14933.84, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_reduction_pct'], 0.88, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_lb_CO2'], 0.0, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_lb_CO2'], 14933.84, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_lb_CO2'], 0.0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_lb_CO2'], 14933.84,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_lb_CO2'],0.0, places=1) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_scope1_emissions_lb_CO2'], 0.0,places=1) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0) 
-        # check curtailment vs exports
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['PV']['year_one_curtailed_production_series_kw']),336270.423, places=0)
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['Wind']['year_one_curtailed_production_series_kw']),404165.496, places=0) 
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['PV']['year_one_to_grid_series_kw']),0.0, places=0) 
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['Wind']['year_one_to_grid_series_kw']),0.0, places=0) 
-        # Year 1 Site RE / emissions - BAU case
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_pct'], 0.14,places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_kwh'], 13542.62,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_bau_lb_CO2'],127811.53, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_bau_lb_CO2'],0.0, places=0)
-    
-    def test_yesexportcredit_minER_NObatt(self):
-        """
-        Test scenario with
-        - existing PV
-        - new PV, wind, and storage enabled
-        - %RE accounting method = 1 (yes credit for exported RE)
-        - emissions accounting method = 1 (yes credit for exported RE)
-        - 90% annual RE target with RE credit for grid exports
-        """
-
-        nested_data = json.load(open(self.test_post, 'rb'))
-        nested_data['Scenario']['Site']['emissions_reduction_min_pct'] = 0.90
-        nested_data['Scenario']['Site']['renewable_electricity_accounting_method'] = 1
-        nested_data['Scenario']['Site']['emissions_reduction_accounting_method'] = 1
-        nested_data['Scenario']['Site']['PV']['existing_kw'] = 10.0
-        nested_data['Scenario']['Site']['Storage']['max_kw'] = 0.0
-        nested_data['Scenario']['Site']['Storage']['max_kwh'] = 0.0
-        nested_data['Scenario']['Site']['Wind']['max_kw'] = 1000
-
-        resp = self.get_response(data=nested_data)
-        self.assertHttpCreated(resp)
-        r = json.loads(resp.content)
-        run_uuid = r.get('run_uuid')
-        d = ModelManager.make_response(run_uuid=run_uuid)
-
-        # Recommended system sizes - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['size_kw'], 312.8784, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kw'],0.0, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kwh'], 0.0, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['size_kw'], 407.5694, places=1)
-        # Year 1 Site RE / emissions - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_pct'], 0.91, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_kwh'], 91461.11,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_lb_CO2'], 12771.33, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_reduction_pct'], 0.9, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_lb_CO2'], 0.0, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_lb_CO2'], 12771.33, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_lb_CO2'], 0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_lb_CO2'], 12771.33,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0)
-        # check curtailment vs exports
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['PV']['year_one_curtailed_production_series_kw']),378684.62, places=0)
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['Wind']['year_one_curtailed_production_series_kw']),697258.09, places=0) 
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['PV']['year_one_to_grid_series_kw']),0.0, places=0) 
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['Wind']['year_one_to_grid_series_kw']),0.0, places=0) 
-        # Year 1 Site RE / emissions - BAU case
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_pct'], 0.14,places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_kwh'], 13542.62,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_bau_lb_CO2'],127811.53, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_bau_lb_CO2'],0.0, places=0)
-      
-    def test_noexportcredit_minRE_NObatt(self):
-        """
-        Test scenario with
-        - existing PV
-        - new PV, wind, and storage enabled
-        - %RE accounting method = 1 (yes credit for exported RE)
-        - emissions accounting method = 1 (yes credit for exported RE)
-        - 90% annual RE target with RE credit for grid exports
-        """
-
-        nested_data = json.load(open(self.test_post, 'rb'))
-        nested_data['Scenario']['Site']['renewable_electricity_min_pct'] = 0.90
-        nested_data['Scenario']['Site']['renewable_electricity_accounting_method'] = 0
-        nested_data['Scenario']['Site']['emissions_reduction_accounting_method'] = 0
-        nested_data['Scenario']['Site']['PV']['existing_kw'] = 10.0
-        nested_data['Scenario']['Site']['Storage']['max_kw'] = 0.0
-        nested_data['Scenario']['Site']['Storage']['max_kwh'] = 0.0
-        nested_data['Scenario']['Site']['PV']['max_kw'] = 10000
-        nested_data['Scenario']['Site']['Wind']['max_kw'] = 1000
-
-        resp = self.get_response(data=nested_data)
-        self.assertHttpCreated(resp)
-        r = json.loads(resp.content)
-        run_uuid = r.get('run_uuid')
-        d = ModelManager.make_response(run_uuid=run_uuid)
-
-        # Recommended system sizes - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['size_kw'], 255.878, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kw'], 0.0, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kwh'], 0.0, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['size_kw'], 265.0181, places=1)
-        # Year 1 Site RE / emissions - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_pct'], 0.9, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_kwh'], 90000.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_lb_CO2'], 14933.84, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_reduction_pct'], 0.88, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_lb_CO2'], 0.0, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_lb_CO2'], 14933.84, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_lb_CO2'], 0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_lb_CO2'], 14933.84,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0) 
-        # check curtailment vs exports
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['PV']['year_one_curtailed_production_series_kw']),336270.42, places=0)
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['Wind']['year_one_curtailed_production_series_kw']),404165.496, places=0) 
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['PV']['year_one_to_grid_series_kw']),0.0, places=0) 
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['Wind']['year_one_to_grid_series_kw']),0.0, places=0) 
-        # Year 1 Site RE / emissions - BAU case (currently same for all tests in this suite)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_pct'], 0.14,places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_kwh'], 13542.62,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_bau_lb_CO2'],127811.53, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_bau_lb_CO2'],0.0, places=0)
-    
-    def test_noexportcredit_minER_NObatt(self):
-        """
-        Test scenario with
-        - existing PV
-        - new PV, wind, and storage enabled
-        - %RE accounting method = 1 (yes credit for exported RE)
-        - emissions accounting method = 1 (yes credit for exported RE)
-        - 90% annual RE target with RE credit for grid exports
-        """
-
-        nested_data = json.load(open(self.test_post, 'rb'))
-        nested_data['Scenario']['Site']['emissions_reduction_min_pct'] = 0.90
-        nested_data['Scenario']['Site']['renewable_electricity_accounting_method'] = 0
-        nested_data['Scenario']['Site']['emissions_reduction_accounting_method'] = 0
-        nested_data['Scenario']['Site']['PV']['existing_kw'] = 10.0
-        nested_data['Scenario']['Site']['Storage']['max_kw'] = 0.0
-        nested_data['Scenario']['Site']['Storage']['max_kwh'] = 0.0
-        nested_data['Scenario']['Site']['PV']['max_kw'] = 10000
-        nested_data['Scenario']['Site']['Wind']['max_kw'] = 1000
-
-        resp = self.get_response(data=nested_data)
-        self.assertHttpCreated(resp)
-        r = json.loads(resp.content)
-        run_uuid = r.get('run_uuid')
-        d = ModelManager.make_response(run_uuid=run_uuid)
-
-        # Recommended system sizes - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['size_kw'], 311.1855, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kw'], 0.0, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kwh'], 0.0, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['size_kw'], 406.9693, places=1)
-        # Year 1 Site RE / emissions - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_pct'], 0.91, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_kwh'], 91454.45,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_lb_CO2'], 12781.15, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_reduction_pct'], 0.9, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_lb_CO2'], 0.0, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_lb_CO2'], 12781.15, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_lb_CO2'], 0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_lb_CO2'], 12781.15,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0) 
-        # check curtailment vs exports
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['PV']['year_one_curtailed_production_series_kw']),376395.82, places=0)
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['Wind']['year_one_curtailed_production_series_kw']),696158.03, places=0) 
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['PV']['year_one_to_grid_series_kw']),0.0, places=0) 
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['Wind']['year_one_to_grid_series_kw']),0.0, places=0) 
-        # Year 1 Site RE / emissions - BAU case
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_pct'], 0.14,places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_kwh'], 13542.62,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_bau_lb_CO2'],127811.53, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_bau_lb_CO2'],0.0, places=0)
-    
-    # ADD NET METERING
-
-    def test_yesexportcredit_minandmaxRE_NObatt_addNEM(self):
-
-        nested_data = json.load(open(self.test_post, 'rb'))
-        nested_data['Scenario']['Site']['renewable_electricity_min_pct'] = 0.40
-        nested_data['Scenario']['Site']['renewable_electricity_max_pct'] = 0.40
-        nested_data['Scenario']['Site']['renewable_electricity_accounting_method'] = 1
-        nested_data['Scenario']['Site']['emissions_reduction_accounting_method'] = 1
-        nested_data['Scenario']['Site']['PV']['existing_kw'] = 10.0
-        nested_data['Scenario']['Site']['Storage']['max_kw'] = 0.0
-        nested_data['Scenario']['Site']['Storage']['max_kwh'] = 0.0
-        nested_data['Scenario']['Site']['Wind']['max_kw'] = 1000
-        nested_data['Scenario']['Site']['ElectricTariff']['net_metering_limit_kw'] = 1000
-
-        resp = self.get_response(data=nested_data)
-        self.assertHttpCreated(resp)
-        r = json.loads(resp.content)
-        run_uuid = r.get('run_uuid')
-        d = ModelManager.make_response(run_uuid=run_uuid)
-
-        # Recommended system sizes - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['size_kw'],29.3971, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kw'], 0.0, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kwh'], 0.0, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['size_kw'], 0.0, places=1)
-        # Year 1 Site RE / emissions - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_pct'], 0.4, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_kwh'], 40000.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_lb_CO2'], 88740.39, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_reduction_pct'], 0.31, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_lb_CO2'], 0.0, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_lb_CO2'], 105642.69, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_lb_CO2'], -16902.29,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_lb_CO2'], 105642.687,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_lb_CO2'],-16902.29, places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0) 
-        # check curtailment vs exports
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['PV']['year_one_curtailed_production_series_kw']),0.0, places=0)
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['Wind']['year_one_curtailed_production_series_kw']),0.0, places=0) 
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['PV']['year_one_to_grid_series_kw']),11252.501, places=0) 
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['Wind']['year_one_to_grid_series_kw']),0.0, places=0) 
-        # Year 1 Site RE / emissions - BAU case
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_pct'], 0.14,places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_kwh'], 13606.76,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2'], 127713.31,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_bau_lb_CO2'], -98.22,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_bau_lb_CO2'],127811.53, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_bau_lb_CO2'],-98.22, places=0)
-    
-    def test_noexportcredit_minandmaxRE_NObatt_addNEM(self):
-
-        nested_data = json.load(open(self.test_post, 'rb'))
-        nested_data['Scenario']['Site']['renewable_electricity_min_pct'] = 0.40
-        nested_data['Scenario']['Site']['renewable_electricity_max_pct'] = 0.40
-        nested_data['Scenario']['Site']['renewable_electricity_accounting_method'] = 0
-        nested_data['Scenario']['Site']['emissions_reduction_accounting_method'] = 0
-        nested_data['Scenario']['Site']['PV']['existing_kw'] = 10.0
-        nested_data['Scenario']['Site']['Storage']['max_kw'] = 0.0
-        nested_data['Scenario']['Site']['Storage']['max_kwh'] = 0.0
-        nested_data['Scenario']['Site']['Wind']['max_kw'] = 1000
-        nested_data['Scenario']['Site']['ElectricTariff']['net_metering_limit_kw'] = 1000
-
-        resp = self.get_response(data=nested_data)
-        self.assertHttpCreated(resp)
-        r = json.loads(resp.content)
-        run_uuid = r.get('run_uuid')
-        d = ModelManager.make_response(run_uuid=run_uuid)
-
-        # Recommended system sizes - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['size_kw'],37.3824, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kw'], 0.0, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kwh'], 0.0, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['size_kw'], 5.9066, places=1)
-        # Year 1 Site RE / emissions - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_pct'], 0.4, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_kwh'], 40000.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_lb_CO2'], 89077.48, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_reduction_pct'], 0.3, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_lb_CO2'], 0.0, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_lb_CO2'], 89077.48,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_lb_CO2'],-32352.67, places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_nonscope_emissions_lb_CO2'],-8.81, places=0) 
-        # check curtailment vs exports
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['PV']['year_one_curtailed_production_series_kw']),0.0, places=0)
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['Wind']['year_one_curtailed_production_series_kw']),0.0, places=0) 
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['PV']['year_one_to_grid_series_kw']),21608.1, places=0) 
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['Wind']['year_one_to_grid_series_kw']),5.907, places=0) 
-        # Year 1 Site RE / emissions - BAU case
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_pct'], 0.14,places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_kwh'],13542.62,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2'],127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_bau_lb_CO2'], -98.22,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_bau_lb_CO2'],127811.53, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_bau_lb_CO2'],-98.22, places=0)
-    
-    def test_yesexportcredit_minandmaxER_NObatt_addNEM(self):
-
-        nested_data = json.load(open(self.test_post, 'rb'))
-        nested_data['Scenario']['Site']['emissions_reduction_min_pct'] = 0.40
-        nested_data['Scenario']['Site']['emissions_reduction_max_pct'] = 0.40
-        nested_data['Scenario']['Site']['renewable_electricity_accounting_method'] = 1
-        nested_data['Scenario']['Site']['emissions_reduction_accounting_method'] = 1
-        nested_data['Scenario']['Site']['PV']['existing_kw'] = 10.0
-        nested_data['Scenario']['Site']['Storage']['max_kw'] = 0.0
-        nested_data['Scenario']['Site']['Storage']['max_kwh'] = 0.0
-        nested_data['Scenario']['Site']['Wind']['max_kw'] = 1000
-        nested_data['Scenario']['Site']['ElectricTariff']['net_metering_limit_kw'] = 1000
-
-        resp = self.get_response(data=nested_data)
-        self.assertHttpCreated(resp)
-        r = json.loads(resp.content)
-        run_uuid = r.get('run_uuid')
-        d = ModelManager.make_response(run_uuid=run_uuid)
-
-        # Recommended system sizes - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['size_kw'],35.4256, places=1) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kw'], 0.0, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kwh'], 0.0, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['size_kw'], 0.0, places=1)
-        # Year 1 Site RE / emissions - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_pct'], 0.48, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_kwh'], 13606.76,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_lb_CO2'], 76627.99, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_reduction_pct'], 0.4, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_lb_CO2'], 0.0, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_lb_CO2'], 102031.89, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_lb_CO2'], -25403.9,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_lb_CO2'], 102031.886,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_lb_CO2'],-51183.54, places=0) # model is choosing to curtail rather than count the credit for this...
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_nonscope_emissions_lb_CO2'],0.0, places=0) # model is choosing to curtail rather than count the credit for this...
-        # check curtailment vs exports
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['PV']['year_one_curtailed_production_series_kw']),0.0, places=0)
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['Wind']['year_one_curtailed_production_series_kw']),0.0, places=0) 
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['PV']['year_one_to_grid_series_kw']),64.15, places=0) 
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['Wind']['year_one_to_grid_series_kw']),0.0, places=0) 
-        # Year 1 Site RE / emissions - BAU case
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_pct'], 0.14,places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_kwh'], 13606.76,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2'], 127713.31,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_bau_lb_CO2'], -98.22,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_bau_lb_CO2'],127811.53, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_bau_lb_CO2'],-98.22, places=0)
-    
-     
-    def test_noexportcredit_minandmaxER_NObatt_addNEM(self):
-
-        nested_data = json.load(open(self.test_post, 'rb'))
-        nested_data['Scenario']['Site']['emissions_reduction_min_pct'] = 0.40
-        nested_data['Scenario']['Site']['emissions_reduction_max_pct'] = 0.40
-        nested_data['Scenario']['Site']['renewable_electricity_accounting_method'] = 0
-        nested_data['Scenario']['Site']['emissions_reduction_accounting_method'] = 0
-        nested_data['Scenario']['Site']['PV']['existing_kw'] = 10.0
-        nested_data['Scenario']['Site']['Storage']['max_kw'] = 0.0
-        nested_data['Scenario']['Site']['Storage']['max_kwh'] = 0.0
-        nested_data['Scenario']['Site']['Wind']['max_kw'] = 1000
-        nested_data['Scenario']['Site']['ElectricTariff']['net_metering_limit_kw'] = 1000
-
-        resp = self.get_response(data=nested_data)
-        self.assertHttpCreated(resp)
-        r = json.loads(resp.content)
-        run_uuid = r.get('run_uuid')
-        d = ModelManager.make_response(run_uuid=run_uuid)
-
-        # Recommended system sizes - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['size_kw'],39.1435, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kw'], 0.0, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Storage']['size_kwh'], 0.0, places=1)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['size_kw'], 12.5555, places=1)
-        # Year 1 Site RE / emissions - non-BAU
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_pct'], 0.48, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_kwh'], 48364.18,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_lb_CO2'], 76686.92, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_reduction_pct'], 0.4, places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_lb_CO2'], 0.0, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_lb_CO2'], 76686.92,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_lb_CO2'],-36122.01, places=0) # model is choosing to curtail rather than count the credit for this...
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_scope1_emissions_lb_CO2'], 0.0,places=0) 
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['Wind']['year_one_nonscope_emissions_lb_CO2'],-5375.93, places=0) # model is choosing to curtail rather than count the credit for this...
-        # check curtailment vs exports
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['PV']['year_one_curtailed_production_series_kw']),0.0, places=0)
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['Wind']['year_one_curtailed_production_series_kw']),0.0, places=0) 
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['PV']['year_one_to_grid_series_kw']),24157.2, places=0) 
-        self.assertAlmostEquals(sum(d['outputs']['Scenario']['Site']['Wind']['year_one_to_grid_series_kw']),3588.3, places=0) 
-        # Year 1 Site RE / emissions - BAU case
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_pct'], 0.14,places=2)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_kwh'],13542.62,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2'],127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_scope2_emissions_bau_lb_CO2'], 127811.53,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['year_one_nonscope_emissions_bau_lb_CO2'], -98.22,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_scope2_emissions_bau_lb_CO2'],127811.53, places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_scope1_emissions_bau_lb_CO2'], 0.0,places=0)
-        self.assertAlmostEquals(d['outputs']['Scenario']['Site']['PV']['year_one_nonscope_emissions_bau_lb_CO2'],-98.22, places=0)
-    '''
+                                # check results - automated:
+                                # print system sizes
+                                print('PV kW: ',round(d['outputs']['Scenario']['Site']['PV']['size_kw'],2))
+                                print('Wind kW: ',round(d['outputs']['Scenario']['Site']['Wind']['size_kw'],2))
+                                print('Batt kW: ',round(d['outputs']['Scenario']['Site']['Storage']['size_kw'],2))
+                                print('Batt kWh: ',round(d['outputs']['Scenario']['Site']['Storage']['size_kwh'],2))
+                                print('Generator kW: ',round(d['outputs']['Scenario']['Site']['Generator']['size_kw'],2))
+                                print('CHP kW: ',round(d['outputs']['Scenario']['Site']['CHP']['size_kw'],2))
+                                print('AbsChl ton: ',round(d['outputs']['Scenario']['Site']['AbsorptionChiller']['size_ton'],2))
+                                print('ColdTES gal: ',round(d['outputs']['Scenario']['Site']['ColdTES']['size_gal'],2))
+                                print('HotTES gal: ',round(d['outputs']['Scenario']['Site']['HotTES']['size_gal'],2))
+                                # Year 1 RE elec - BAU case:
+                                RE_elec_bau_pct_out = d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_pct'] or 0.0
+                                RE_elec_bau_kwh_out = d['outputs']['Scenario']['Site']['year_one_renewable_electricity_bau_kwh'] or 0.0
+                                self.assertAlmostEquals(annual_elec_load_kwh*RE_elec_bau_pct_out,RE_elec_bau_kwh_out,places=-1)
+                                # Year 1 RE elec - non-BAU case:
+                                RE_elec_pct_out = d['outputs']['Scenario']['Site']['year_one_renewable_electricity_pct'] or 0.0
+                                if RE_target is not None:
+                                    self.assertAlmostEquals(RE_elec_pct_out,RE_target,places=3)
+                                RE_elec_kwh_out = d['outputs']['Scenario']['Site']['year_one_renewable_electricity_kwh'] or 0.0
+                                self.assertAlmostEquals(annual_elec_load_kwh*RE_elec_pct_out,RE_elec_kwh_out,places=-1)
+                                # BAU emissions:
+                                emissions_bau_lbCO2_out = d['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2']
+                                emissions_bau_lbCO2_in = d['outputs']['Scenario']['Site']['preprocessed_year_one_emissions_bau_lb_CO2']
+                                emissions_bau_preprocess_pct_diff = (emissions_bau_lbCO2_out-emissions_bau_lbCO2_in)/emissions_bau_lbCO2_out
+                                self.assertAlmostEquals(emissions_bau_preprocess_pct_diff,0.0,places=2) #(<1.5% error) 
+                                # Year 1 emissions reductions:
+                                ER_pct_out = d['outputs']['Scenario']['Site']['year_one_emissions_reduction_pct']
+                                if ER_target is not None:
+                                    self.assertAlmostEquals(ER_pct_out,ER_target,places=3)
+                                emissions_lbCO2_out = d['outputs']['Scenario']['Site']['year_one_emissions_lb_CO2']
+                                emissions_bau_lbCO2_out = d['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2']
+                                ER_pct_calced_out = (emissions_bau_lbCO2_out-emissions_lbCO2_out)/emissions_bau_lbCO2_out
+                                if ER_pct_calced_out==0: 
+                                    if ER_pct_out==0:
+                                        ER_pct_diff = 0
+                                    else: 
+                                        ER_pct_diff = (ER_pct_calced_out-ER_pct_out)/ER_pct_out
+                                else:
+                                    ER_pct_diff = (ER_pct_calced_out-ER_pct_out)/ER_pct_calced_out
+                                self.assertAlmostEquals(ER_pct_diff,0.0,places=2)
+                                # Year 1 emissions - non-BAU case:
+                                yr1_fuel_emissions = d['outputs']['Scenario']['Site']['Generator']['year_one_emissions_lb_CO2'] or 0.0
+                                if elec_only == 0:
+                                    yr1_fuel_emissions += d['outputs']['Scenario']['Site']['CHP']['year_one_emissions_lb_CO2'] or 0.0
+                                    yr1_fuel_emissions += d['outputs']['Scenario']['Site']['Boiler']['year_one_emissions_lb_CO2'] or 0.0
+                                yr1_grid_emissions = d['outputs']['Scenario']['Site']['ElectricTariff']['year_one_emissions_lb_CO2'] or 0.0
+                                yr1_PV_exported_emissions_offset_lb_CO2 = d['outputs']['Scenario']['Site']['PV']['year_one_exported_emissions_offset_lb_CO2'] or 0.0
+                                yr1_wind_exported_emissions_offset_lb_CO2 = d['outputs']['Scenario']['Site']['Wind']['year_one_exported_emissions_offset_lb_CO2'] or 0.0
+                                yr1_total_emissions_calced = yr1_fuel_emissions + yr1_grid_emissions 
+                                if include_exported_elec_emissions_in_total:
+                                    yr1_total_emissions_calced += -1*(yr1_PV_exported_emissions_offset_lb_CO2 + yr1_wind_exported_emissions_offset_lb_CO2)
+                                self.assertAlmostEquals(emissions_lbCO2_out,yr1_total_emissions_calced,places=-1)
+                                # Year 1 cost of emissions reductions 
+                                yr1_cost_ER_usd_per_tCO2_out = d['outputs']['Scenario']['Site']['year_one_cost_of_emissions_reduction_us_dollars_per_ton_CO2'] 
+                                pwf_om_proxy = d['outputs']['Scenario']['Site']['Financial']['total_om_costs_us_dollars'] / \
+                                    d['outputs']['Scenario']['Site']['Financial']['year_one_om_costs_us_dollars']
+                                yr1_cost_ER_usd_per_tCO2_calced = -1 * d['outputs']['Scenario']['Site']['Financial']['npv_us_dollars']/ \
+                                    pwf_om_proxy / ((emissions_bau_lbCO2_out-emissions_lbCO2_out)/2000) if emissions_bau_lbCO2_out-emissions_lbCO2_out else 0.0
+                                self.assertAlmostEquals(yr1_cost_ER_usd_per_tCO2_out,yr1_cost_ER_usd_per_tCO2_calced,places=-1)
+                                # RE heat
+                                if elec_only == 0:
+                                    # Year 1 RE heat - BAU case
+                                    RE_heat_bau_pct_out = d['outputs']['Scenario']['Site']['year_one_renewable_heat_pct']
+                                    RE_heat_bau_mmbtu_out = d['outputs']['Scenario']['Site']['year_one_renewable_heat_mmbtu']
+                                    self.assertAlmostEquals(annual_ng_heat_load_mmbtu*RE_heat_bau_pct_out,RE_heat_bau_mmbtu_out,places=-1)
+                                    # Year 1 RE heat - non-BAU case
+                                    RE_heat_pct_out = d['outputs']['Scenario']['Site']['year_one_renewable_heat_pct']
+                                    RE_heat_mmbtu_out = d['outputs']['Scenario']['Site']['year_one_renewable_heat_mmbtu']
+                                    self.assertAlmostEquals(annual_ng_heat_load_mmbtu*RE_heat_pct_out,RE_heat_mmbtu_out,places=-1)

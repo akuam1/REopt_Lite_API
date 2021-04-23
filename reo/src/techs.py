@@ -329,7 +329,7 @@ class CHP(Tech):
                               "combustion_turbine": 0,
                               "fuel_cell": 0}
 
-    def __init__(self, dfm, run_uuid, existing_boiler_production_type_steam_or_hw, oa_temp_degF, site_elevation_ft,
+    def __init__(self, dfm, run_uuid, existing_boiler_production_type_steam_or_hw, oa_temp_degF, site_elevation_ft, emissions_factor_lb_CO2_per_mmbtu,
                  outage_start_time_step=None, outage_end_time_step=None, time_steps_per_hour=1, year=None, **kwargs):
         super(CHP, self).__init__(**kwargs)
 
@@ -365,6 +365,7 @@ class CHP(Tech):
         self.outage_start_time_step = outage_start_time_step
         self.outage_end_time_step = outage_end_time_step
         self.year = year
+        self.emissions_factor_lb_CO2_per_mmbtu = emissions_factor_lb_CO2_per_mmbtu
 
         self.fuel_burn_slope, self.fuel_burn_intercept, self.thermal_prod_slope, self.thermal_prod_intercept = \
             self.convert_performance_params(self.elec_effic_full_load, self.elec_effic_half_load,
@@ -458,7 +459,7 @@ class Boiler(Tech):
                                                "combustion_turbine": "steam",
                                                "fuel_cell": "hot_water"}
 
-    def __init__(self, dfm, boiler_fuel_series_bau, **kwargs):
+    def __init__(self, dfm, boiler_fuel_series_bau, emissions_factor_lb_CO2_per_mmbtu, **kwargs):
         super(Boiler, self).__init__(**kwargs)
 
         self.is_hot = True
@@ -471,6 +472,7 @@ class Boiler(Tech):
         self.installed_cost_us_dollars_per_mmbtu_per_hr = kwargs.get('installed_cost_us_dollars_per_mmbtu_per_hr')
         self.derate = 0
         self.n_timesteps = dfm.n_timesteps
+        self.emissions_factor_lb_CO2_per_mmbtu = emissions_factor_lb_CO2_per_mmbtu
 
         # Unless max_mmbtu_per_hr is a user-input, set the max_mmbtu_per_hr with the heating load and factor
         if self.max_mmbtu_per_hr is None:

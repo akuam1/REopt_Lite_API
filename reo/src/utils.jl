@@ -181,13 +181,14 @@ Base.@kwdef struct Parameter
      AddSOCIncentive::Int64
 
     # Annual RE parameters
-    REElecAccountingMethod::Int64
+    IncludeExportedREElecinTotal::Bool
     TechPercentRE::AxisArray
     MinAnnualPercentREElec::Union{Float64,Nothing} 
     MaxAnnualPercentREElec::Union{Float64,Nothing} 
 
     # Emissions parameters
-    EmissionsAccountingMethod::Int64
+    IncludeExportedElecEmissionsInTotal::Bool
+    IncludeOutageEmissionsInTotal::Bool
     MinPercentEmissionsReduction::Union{Float64,Nothing} 
     MaxPercentEmissionsReduction::Union{Float64,Nothing} 
     BAUYr1Emissions::Float64
@@ -300,7 +301,6 @@ function Parameter(d::Dict)
     d["OMcostPerUnitProd"] = AxisArray(d["OMcostPerUnitProd"], d["Tech"])
     d["TechEmissionsFactors"] = AxisArray(d["TechEmissionsFactors"], d["Tech"])
     d["TechPercentRE"] = AxisArray(d["TechPercentRE"], d["Tech"])
-    d["TechPercentBiomass"] = AxisArray(d["TechPercentBiomass"], d["Tech"])
 	d["OMcostPerUnitHourPerSize"] = AxisArray(d["OMcostPerUnitHourPerSize"], d["Tech"])
 
     # Reformulation additions
