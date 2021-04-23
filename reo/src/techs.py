@@ -232,7 +232,7 @@ class Generator(Tech):
 
     def __init__(self, dfm, min_kw, max_kw, existing_kw, fuel_slope_gal_per_kwh, fuel_intercept_gal_per_hr,
                  fuel_avail_gal, min_turn_down_pct, outage_start_time_step=None, outage_end_time_step=None, time_steps_per_hour=1,
-                 fuel_avail_before_outage_pct=1, emissions_factor_lb_CO2_per_gal=None, **kwargs):
+                 fuel_avail_before_outage_pct=1, emissions_factor_lb_CO2_per_gal=None, generator_fuel_percent_RE=None,**kwargs):
         super(Generator, self).__init__(min_kw=min_kw, max_kw=max_kw, **kwargs)
         """
         super class init for generator is not unique anymore as we are now allowing users to define min/max sizes;
@@ -260,6 +260,7 @@ class Generator(Tech):
         self.max_kw = max_kw
         self.existing_kw = existing_kw
         self.emissions_factor_lb_CO2_per_gal = emissions_factor_lb_CO2_per_gal
+        self.generator_fuel_percent_RE = generator_fuel_percent_RE
 
         dfm.add_generator(self)
 
@@ -330,7 +331,7 @@ class CHP(Tech):
                               "fuel_cell": 0}
 
     def __init__(self, dfm, run_uuid, existing_boiler_production_type_steam_or_hw, oa_temp_degF, site_elevation_ft, emissions_factor_lb_CO2_per_mmbtu,
-                 outage_start_time_step=None, outage_end_time_step=None, time_steps_per_hour=1, year=None, **kwargs):
+                 outage_start_time_step=None, outage_end_time_step=None, chp_fuel_percent_RE=None, time_steps_per_hour=1, year=None, **kwargs):
         super(CHP, self).__init__(**kwargs)
 
         self.prime_mover = kwargs.get('prime_mover')
@@ -366,6 +367,7 @@ class CHP(Tech):
         self.outage_end_time_step = outage_end_time_step
         self.year = year
         self.emissions_factor_lb_CO2_per_mmbtu = emissions_factor_lb_CO2_per_mmbtu
+        self.chp_fuel_percent_RE = chp_fuel_percent_RE
 
         self.fuel_burn_slope, self.fuel_burn_intercept, self.thermal_prod_slope, self.thermal_prod_intercept = \
             self.convert_performance_params(self.elec_effic_full_load, self.elec_effic_half_load,
@@ -459,7 +461,7 @@ class Boiler(Tech):
                                                "combustion_turbine": "steam",
                                                "fuel_cell": "hot_water"}
 
-    def __init__(self, dfm, boiler_fuel_series_bau, emissions_factor_lb_CO2_per_mmbtu, **kwargs):
+    def __init__(self, dfm, boiler_fuel_series_bau, emissions_factor_lb_CO2_per_mmbtu,boiler_fuel_percent_RE=None, **kwargs):
         super(Boiler, self).__init__(**kwargs)
 
         self.is_hot = True
@@ -473,6 +475,7 @@ class Boiler(Tech):
         self.derate = 0
         self.n_timesteps = dfm.n_timesteps
         self.emissions_factor_lb_CO2_per_mmbtu = emissions_factor_lb_CO2_per_mmbtu
+        self.boiler_fuel_percent_RE = boiler_fuel_percent_RE
 
         # Unless max_mmbtu_per_hr is a user-input, set the max_mmbtu_per_hr with the heating load and factor
         if self.max_mmbtu_per_hr is None:
