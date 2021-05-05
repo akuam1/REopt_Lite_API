@@ -32,7 +32,7 @@ import os
 from tastypie.test import ResourceTestCaseMixin
 from reo.nested_to_flat_output import nested_to_flat
 from django.test import TestCase
-from reo.models import ModelManagero
+from reo.models import ModelManager
 from reo.utilities import check_common_outputs
 
 
@@ -53,18 +53,20 @@ class REandEmissionsContraintTests(ResourceTestCaseMixin, TestCase):
         Runs a sweep of various scenarios () and checks logic of calculations and application of constraints.
         '''
         # inputs
-        RE_target_totest = [None,0.4] ##used for min and max #for test, if RE_target = None, then ER target = 0.4
-        include_exported_RE_in_total_totest = [True,False] #,1] #0 or 1
-        include_exported_elec_emissions_totest = [True,False] #[0,1] #0 or 1
-        no_battery_totest = [0,1] #,1] #0 or 1 (0 = PV+batt, 1 = PV only)
-        net_metering_totest = [0,1] #[0,1] #0 or 1
+        RE_target_totest = [None,0.8] #[None,0.8] #,0.4] ##used for min and max #for test, if RE_target = None, then ER target = 0.4
+        include_exported_RE_in_total_totest =  [True,False] #[True,False] #,1] #0 or 1
+        include_exported_elec_emissions_totest =[True,False]# [True,False] #[0,1] #0 or 1
+        no_battery_totest = [0,1] #[0,1] #,1] #0 or 1 (0 = PV+batt, 1 = PV only)
+        net_metering_totest = [0,1] #,1] #[0,1] #0 or 1
         elec_only_totest = [1] #0 or 1
         # need build out thermal tests once those variables are hooked up
         # also resilience x clean energy targets (need to hook up include_outage_emissions_in_total first)
 
         for RE_target in RE_target_totest:
             if RE_target is None:
-                ER_target = 0.4
+                ER_target = 0.8
+            else:
+                ER_target = None
             for include_exported_RE_in_total in include_exported_RE_in_total_totest:
                 for include_exported_elec_emissions_in_total in include_exported_elec_emissions_totest:
                     for no_battery in no_battery_totest:
@@ -81,20 +83,20 @@ class REandEmissionsContraintTests(ResourceTestCaseMixin, TestCase):
                                 nested_data = json.load(open(self.test_post, 'rb'))
                                 annual_elec_load_kwh = 100000
                                 annual_heat_load_mmbtu = 100000      
-                                nat_gas_dollars_per_mmbtu = 3      
+                                nat_gas_dollars_per_mmbtu = 3     
                                 nested_data['Scenario']['Site']['LoadProfile']['annual_kwh'] = annual_elec_load_kwh
-                                nested_data['Scenario']['Site']['include_exported_RE_in_total'] = include_exported_RE_in_total
+                                nested_data['Scenario']['Site']['include_exported_renewable_electricity_in_total'] = include_exported_RE_in_total
                                 nested_data['Scenario']['Site']['include_exported_elec_emissions_in_total'] = include_exported_elec_emissions_in_total
                                 if RE_target is not None:
                                     nested_data['Scenario']['Site']['renewable_electricity_min_pct'] = RE_target
-                                    #nested_data['Scenario']['Site']['renewable_electricity_max_pct'] = RE_target
+                                    nested_data['Scenario']['Site']['renewable_electricity_max_pct'] = RE_target
                                 if ER_target is not None:
                                     nested_data['Scenario']['Site']['emissions_reduction_min_pct'] = ER_target
-                                    #nested_data['Scenario']['Site']['emissions_reduction_max_pct'] = ER_target                            
+                                    nested_data['Scenario']['Site']['emissions_reduction_max_pct'] = ER_target                            
                                 if net_metering == 0:
                                     nested_data['Scenario']['Site']['ElectricTariff']['net_metering_limit_kw'] = 0
                                 else:
-                                    nested_data['Scenario']['Site']['ElectricTariff']['net_metering_limit_kw'] = 1000
+                                    nested_data['Scenario']['Site']['ElectricTariff']['net_metering_limit_kw'] = 10000
                                 nested_data['Scenario']['Site']['PV']['existing_kw'] = 10.0
                                 nested_data['Scenario']['Site']['Wind']['max_kw'] = 100
                                 if no_battery == 0:
@@ -140,6 +142,40 @@ class REandEmissionsContraintTests(ResourceTestCaseMixin, TestCase):
                                     self.assertAlmostEquals(RE_elec_pct_out,RE_target,places=3)
                                 RE_elec_kwh_out = d['outputs']['Scenario']['Site']['year_one_renewable_electricity_kwh'] or 0.0
                                 self.assertAlmostEquals(annual_elec_load_kwh*RE_elec_pct_out,RE_elec_kwh_out,places=-1)
+                                # check RE elec export credit accounting
+                                PV_avg_annual_kwh = d['outputs']['Scenario']['Site']['PV']['average_yearly_energy_produced_kwh']
+                                PV_avg_annual_kwh_exports = d['outputs']['Scenario']['Site']['PV']['average_yearly_energy_exported_kwh']
+                                PV_year_one_kwh = d['outputs']['Scenario']['Site']['PV']['year_one_energy_produced_kwh']
+                                if PV_year_one_kwh > 0:
+                                    PV_year_one_to_avg_annual = PV_avg_annual_kwh/PV_year_one_kwh
+                                else:
+                                    PV_year_one_to_avg_annual = 1
+                                PV_avg_annual_kwh_to_batt = PV_year_one_to_avg_annual*sum(d['outputs']['Scenario']['Site']['PV']['year_one_to_battery_series_kw'])
+                                PV_avg_annual_kwh_curtailed = PV_year_one_to_avg_annual*sum(d['outputs']['Scenario']['Site']['PV']['year_one_curtailed_production_series_kw'])
+
+                                Wind_avg_annual_kwh = d['outputs']['Scenario']['Site']['Wind']['average_yearly_energy_produced_kwh']
+                                Wind_avg_annual_kwh_exports = d['outputs']['Scenario']['Site']['Wind']['average_yearly_energy_exported_kwh']
+                                Wind_year_one_kwh = d['outputs']['Scenario']['Site']['Wind']['year_one_energy_produced_kwh']
+                                if Wind_year_one_kwh > 0:
+                                    Wind_year_one_to_avg_annual = Wind_avg_annual_kwh/Wind_year_one_kwh
+                                else:
+                                    Wind_year_one_to_avg_annual = 1
+                                Wind_avg_annual_kwh_to_batt = Wind_year_one_to_avg_annual*sum(d['outputs']['Scenario']['Site']['Wind']['year_one_to_battery_series_kw'])
+                                Wind_avg_annual_kwh_curtailed = Wind_year_one_to_avg_annual*sum(d['outputs']['Scenario']['Site']['Wind']['year_one_curtailed_production_series_kw'])
+
+                                Batt_eff = d['inputs']['Scenario']['Site']['Storage']['rectifier_efficiency_pct'] \
+                                    * d['inputs']['Scenario']['Site']['Storage']['inverter_efficiency_pct'] \
+                                    * d['inputs']['Scenario']['Site']['Storage']['internal_efficiency_pct'] 
+                                
+                                RE_tot_kwh_calced = PV_avg_annual_kwh + Wind_avg_annual_kwh \
+                                    - (1-Batt_eff)*(PV_avg_annual_kwh_to_batt+Wind_avg_annual_kwh_to_batt) \
+                                    - (PV_avg_annual_kwh_curtailed + Wind_avg_annual_kwh_curtailed)
+                                if include_exported_RE_in_total is False:
+                                    RE_tot_kwh_calced -= PV_avg_annual_kwh_exports + Wind_avg_annual_kwh_exports
+
+                                RE_tot_kwh_pct_diff = (RE_tot_kwh_calced - RE_elec_kwh_out)/RE_tot_kwh_calced
+                                self.assertAlmostEquals(RE_tot_kwh_pct_diff,0.0,places=-1) #(<5% error) 
+
                                 # BAU emissions:
                                 emissions_bau_lbCO2_out = d['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2']
                                 emissions_bau_lbCO2_in = d['outputs']['Scenario']['Site']['preprocessed_year_one_emissions_bau_lb_CO2']
@@ -152,14 +188,8 @@ class REandEmissionsContraintTests(ResourceTestCaseMixin, TestCase):
                                 emissions_lbCO2_out = d['outputs']['Scenario']['Site']['year_one_emissions_lb_CO2']
                                 emissions_bau_lbCO2_out = d['outputs']['Scenario']['Site']['year_one_emissions_bau_lb_CO2']
                                 ER_pct_calced_out = (emissions_bau_lbCO2_out-emissions_lbCO2_out)/emissions_bau_lbCO2_out
-                                if ER_pct_calced_out==0: 
-                                    if ER_pct_out==0:
-                                        ER_pct_diff = 0
-                                    else: 
-                                        ER_pct_diff = (ER_pct_calced_out-ER_pct_out)/ER_pct_out
-                                else:
-                                    ER_pct_diff = (ER_pct_calced_out-ER_pct_out)/ER_pct_calced_out
-                                self.assertAlmostEquals(ER_pct_diff,0.0,places=2)
+                                ER_pct_diff = abs(ER_pct_calced_out-ER_pct_out)
+                                self.assertAlmostEquals(ER_pct_diff,0.0,places=2) #within 1%
                                 # Year 1 emissions - non-BAU case:
                                 yr1_fuel_emissions = d['outputs']['Scenario']['Site']['Generator']['year_one_emissions_lb_CO2'] or 0.0
                                 if elec_only == 0:
