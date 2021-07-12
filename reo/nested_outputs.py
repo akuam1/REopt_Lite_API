@@ -352,17 +352,23 @@ nested_output_definitions = {
                  },
                  "offtaker_annual_free_cashflow_series_bau_us_dollars": {
                   "type": "float",
-                  "description": ("Annual free cashflow for the host in the business-as-usual case for all analysis years, including year 0. Future years have not been discounted to account for the time value of money. Only calcualted in the non-third-party case."),
+                  "description": ("Annual free cashflow for the host in the business-as-usual case for all analysis years, including year 0. Future years have not been discounted to account for the time value of money. Only calculated in the non-third-party case."),
                   "units": "$"
                  },
                  "offtaker_discounted_annual_free_cashflow_series_bau_us_dollars": {
                   "type": "float",
-                  "description": ("Annual discounted free cashflow for the host in the business-as-usual case for all analysis years, including year 0. Future years have been discounted to account for the time value of money. Only calcualted in the non-third-party case."),
+                  "description": ("Annual discounted free cashflow for the host in the business-as-usual case for all analysis years, including year 0. Future years have been discounted to account for the time value of money. Only calculated in the non-third-party case."),
                   "units": "$"
                  },
                  "developer_annual_free_cashflow_series_bau_us_dollars": {
                   "type": "float",
-                  "description": ("Annual free cashflow for the developer in the business-as-usual third party case for all analysis years, including year 0. Future years have not been discounted to account for the time value of money. Only calcualted in the third-party case."),
+                  "description": ("Annual free cashflow for the developer in the business-as-usual third party case for all analysis years, including year 0. Future years have not been discounted to account for the time value of money. Only calculated in the third-party case."),
+                  "units": "$"
+                 },
+                "developer_om_and_replacement_present_cost_after_tax_us_dollars": {
+                  "type": "float",
+                  "description": ("Net O&M and replacement costs in present value, after-tax for the third-party "
+                                  "developer. Only calculated in the third-party case."),
                   "units": "$"
                  }
               },
@@ -697,6 +703,25 @@ nested_output_definitions = {
                   "description": "Total pounds of carbon dioxide emitted from BAU utility electricity use in the first year in the BAU case. Calculated by default from hourly emissions estimates except in AK and HI.",
                   "units": "lb CO2"
                 },
+                "year_one_coincident_peak_cost_us_dollars": {
+                  "type": "float",
+                  "description": "Optimal year one coincident peak charges",
+                  "units": "$"
+                },
+                "year_one_coincident_peak_cost_bau_us_dollars": {
+                  "type": "float",
+                  "description": "Business as usual year one coincident peak charges",
+                  "units": "$"
+                },
+                "total_coincident_peak_cost_us_dollars": {
+                  "type": "float",
+                  "description": "Optimal lifecycle coincident peak charges",
+                  "units": "$"
+                },
+                "total_coincident_peak_cost_bau_us_dollars": {
+                  "type": "float",
+                  "description": "Business as usual lifecycle coincident peak charges",
+                },
                 "year_one_chp_standby_cost_us_dollars": {
                   "type": float,
                   "description": "Year 1 standby charge cost incurred by CHP",
@@ -710,7 +735,7 @@ nested_output_definitions = {
                 "emissions_region": {
                   "type": "str",
                   "description": "Description of region for emissions_factor_series_lb_CO2_per_kwh. Filled by default with the EPA AVERT region of the site."
-                }
+                },
               },
 
               "FuelTariff": {

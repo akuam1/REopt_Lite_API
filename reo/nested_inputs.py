@@ -85,6 +85,9 @@ def list_of_float(input):
 def list_of_str(input):
   return [str(i) for i in input]
 
+def list_of_list(input):
+  return [list(i) for i in input]
+
 def list_of_int(input):
   result = []
   for i in input:
@@ -140,25 +143,6 @@ nested_input_definitions = {
       "max": 10.0,
       "default": 0.001,
       "description": "The threshold for the difference between the solution's objective value and the best possible value at which the solver terminates"
-    },
-  "use_decomposition_model": {
-      "type": "bool",
-      "default": False,
-      "description": "Toggle to use the decomposition model/algorithm"
-    },
-  "optimality_tolerance_decomp_subproblem": {
-      "type": "float",
-      "min": 1.0e-5,
-      "max": 10.0,
-      "default": 0.02,
-      "description": "The threshold for the difference between the decomposition subproblem solution's objective value and the best possible value at which the solver terminates"
-    },
-    "timeout_decomp_subproblem_seconds": {
-      "type": "int",
-      "min": 1,
-      "max": 10000,
-      "default": 120,
-      "description": "The number of seconds allowed before the decomposition subproblem optimization times out"
     },
     "add_soc_incentive": {
       "type": "bool",
@@ -614,6 +598,18 @@ nested_input_definitions = {
           "type": "bool",
           "default": False,
           "description": "Boolean indicator if CHP does not reduce demand charges"
+        },
+        "coincident_peak_load_active_timesteps": {
+          "type": ["int", "list_of_int", "list_of_list"],
+          "depends_on": ["coincident_peak_load_charge_us_dollars_per_kw"],
+          "description": "The optional coincident_peak_load_charge_us_dollars_per_kw will apply at the max grid-purchased power during these timesteps. Note timesteps are indexed to a base of 1 not 0."
+        },
+        "coincident_peak_load_charge_us_dollars_per_kw": {
+          "type": ["float", "list_of_float"],
+          "min": 0,
+          "max": max_big_number,
+          "depends_on":["coincident_peak_load_active_timesteps"],
+          "description": "Optional coincident peak demand charge that is applied to the max load during the timesteps specified in coincident_peak_load_active_timesteps"
         },
       },
 
@@ -1460,6 +1456,7 @@ nested_input_definitions = {
           "type": "float",
           "min": 0.0,
           "max": max_big_number,
+          "default": 0.0,          
           "description": "Minimum CHP size (based on electric) constraint for optimization"
         },
         "max_kw": {
@@ -1490,6 +1487,7 @@ nested_input_definitions = {
           "type": "float",
           "min": 0.0,
           "max": 1.0e4,
+          "default": 0.0,           
           "description": "Annual CHP fixed operations and maintenance costs in $/kw-yr"
         },
         "om_cost_us_dollars_per_kwh": {
@@ -1502,6 +1500,7 @@ nested_input_definitions = {
           "type": "float",
           "min": 0.0,
           "max": 1.0,
+          "default": 0.0,          
           "description": "CHP non-fuel variable operations and maintenance costs in $/hr/kw_rated"
         },
         "elec_effic_full_load": {
@@ -1543,18 +1542,21 @@ nested_input_definitions = {
           "type": "float",
           "min": 0.1,
           "max": 1.5,
+          "default": 1.0,          
           "description": "Maximum derate factor; the y-axis value of the 'flat' part of the derate curve, on the left"
         },
         "derate_start_temp_degF": {
           "type": "float",
           "min": 0.0,
           "max": 150.0,
+          "default": 95.0,          
           "description": "The outdoor air temperature at which the power starts to derate, units of degrees F"
         },
         "derate_slope_pct_per_degF": {
           "type": "float",
           "min": 0.0,
           "max": 1.0,
+          "default": 0.0,            
           "description": "Derate slope as a percent/fraction of rated power per degree F"
         },
         "chp_unavailability_periods": {
@@ -1810,14 +1812,6 @@ nested_input_definitions = {
       },
 
       "Boiler": {
-        "min_mmbtu_per_hr": {
-          "type": "float", "min": 0.0, "max": 1.0e9, "default": 0.0,
-          "description": "Minimum thermal power size - keep to 0 as we are not sizing this"
-        },
-        "max_mmbtu_per_hr": {
-          "type": "float", "min": 0.0, "max": 1.0e9,
-          "description": "Maximum thermal power size - arbitrary large number to exceed max boiler load input"
-        },
         "max_thermal_factor_on_peak_load": {
           "type": "float", "min": 1.0, "max": 5.0, "default": 1.25,
           "description": "Factor on peak thermal LOAD which the boiler can supply"
@@ -1834,10 +1828,6 @@ nested_input_definitions = {
           "description": "Existing boiler system efficiency - conversion of fuel to usable heating thermal energy. "
                          "Default value depends on existing_boiler_production_steam_or_hw input"
         },
-        "installed_cost_us_dollars_per_mmbtu_per_hr": {
-          "type": "float", "min": 0.0, "max": 1.0e9, "default": 0.0,
-          "description": "Thermal power-based cost - set to zero because we are not costing this"
-        },
         "emissions_factor_lb_CO2_per_mmbtu": {
           "type": "float",
           "description": "Pounds of carbon dioxide emitted per mmbtu of fuel burned"
@@ -1845,21 +1835,9 @@ nested_input_definitions = {
       },
 
       "ElectricChiller": {
-        "min_kw": {
-          "type": "float", "min": 0.0, "max": 1.0e9, "default": 0.0,
-          "description": "Minimum electric power size - keep to 0 as we are not sizing this"
-        },
-        "max_kw": {
-          "type": "float", "min": 0.0, "max": 1.0e9,
-          "description": "Maximum electric power size - arbitrary large number to exceed max chiller load input"
-        },
         "max_thermal_factor_on_peak_load": {
           "type": "float", "min": 1.0, "max": 5.0, "default": 1.25,
           "description": "Factor on peak thermal LOAD which the electric chiller can supply"
-        },
-        "installed_cost_us_dollars_per_kw": {
-          "type": "float", "min": 0.0, "max": 1.0e9, "default": 0.0,
-          "description": "Electric power-based cost - set to zero because we are not costing this"
         }
       },
 

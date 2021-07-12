@@ -31,7 +31,7 @@ from reo.src.data_manager import big_number
 from reo.src.pvwatts import PVWatts
 from reo.src.wind import WindSAMSDK
 from reo.src.incentives import Incentives, IncentivesNoProdBased
-from reo.utilities import TONHOUR_TO_KWHT, generate_year_profile_hourly
+from reo.utilities import TONHOUR_TO_KWHT, generate_year_profile_hourly, MMBTU_TO_KWH
 import os
 import json
 import copy
@@ -92,8 +92,8 @@ class Util(Tech):
 
         if self.outage_start_time_step is not None and self.outage_end_time_step is not None:  # "turn off" grid resource
             # minus 1 in next line accounts for Python's zero-indexing
-            grid_prod_factor[self.outage_start_time_step - 1:self.outage_end_time_step - 1] = \
-                [0] * (self.outage_end_time_step - self.outage_start_time_step)
+            grid_prod_factor[self.outage_start_time_step - 1:self.outage_end_time_step] = \
+                [0] * (self.outage_end_time_step - self.outage_start_time_step + 1)
 
         return grid_prod_factor
 
@@ -126,6 +126,8 @@ class PV(Tech):
         self.prod_factor_series_kw = prod_factor_series_kw
         self.tech_name = 'pv' + str(pv_number)
         self.location = location
+        self.station = None
+        self.pvwatts = None
 
         # if user hasn't entered the tilt (default value is 0.537), tilt value gets assigned based on array_type
         if self.tilt == 0.537:
@@ -146,7 +148,10 @@ class PV(Tech):
             else:  # All other tilts come from lookup table included in the array_type_to_tilt_angle dictionary above
                 self.tilt = PV.array_type_to_tilt_angle[kwargs.get('array_type')]
 
-        self.pvwatts = PVWatts(time_steps_per_hour=self.time_steps_per_hour, azimuth=self.azimuth, tilt=self.tilt, **self.kwargs)
+        if self.prod_factor_series_kw is not None:  # then don't call PVWatts
+            self.station = (kwargs.get("latitude", 0), kwargs.get("longitude", 0), 0)
+        else:
+            self.pvwatts = PVWatts(time_steps_per_hour=self.time_steps_per_hour, azimuth=self.azimuth, tilt=self.tilt, **self.kwargs)
 
         dfm.add_pv(self)
 
@@ -161,9 +166,12 @@ class PV(Tech):
 
     @property
     def station_location(self):
-        station = (self.pvwatts.response['station_info']['lat'],
-                   self.pvwatts.response['station_info']['lon'],
-                   round(self.pvwatts.response['station_info']['distance']/1000,1))
+        if self.pvwatts is not None:
+            station = (self.pvwatts.response['station_info']['lat'],
+                       self.pvwatts.response['station_info']['lon'],
+                       round(self.pvwatts.response['station_info']['distance']/1000,1))
+        else:
+            station = self.station
         return station
 
 
@@ -271,8 +279,8 @@ class Generator(Tech):
         if self.generator_only_runs_during_grid_outage:
             if self.outage_start_time_step is not None and self.outage_end_time_step is not None:
                 # minus 1 in next line accounts for Python's zero-indexing
-                gen_prod_factor[self.outage_start_time_step - 1:self.outage_end_time_step - 1] \
-                    = [1] * (self.outage_end_time_step - self.outage_start_time_step)
+                gen_prod_factor[self.outage_start_time_step - 1:self.outage_end_time_step] \
+                    = [1] * (self.outage_end_time_step - self.outage_start_time_step + 1)
         else:
             gen_prod_factor = [1] * len(gen_prod_factor)
 
@@ -390,10 +398,10 @@ class CHP(Tech):
 
         # Ignore unavailability in timestep if it intersects with an outage interval
         if self.outage_start_time_step and self.outage_end_time_step:
-            chp_elec_prod_factor[self.outage_start_time_step - 1:self.outage_end_time_step - 1] = \
-                [1.0] * (self.outage_end_time_step - self.outage_start_time_step)
-            chp_thermal_prod_factor[self.outage_start_time_step - 1:self.outage_end_time_step - 1] = \
-                [1.0] * (self.outage_end_time_step - self.outage_start_time_step)
+            chp_elec_prod_factor[self.outage_start_time_step - 1:self.outage_end_time_step] = \
+                [1.0] * (self.outage_end_time_step - self.outage_start_time_step + 1)
+            chp_thermal_prod_factor[self.outage_start_time_step - 1:self.outage_end_time_step] = \
+                [1.0] * (self.outage_end_time_step - self.outage_start_time_step + 1)
 
         return chp_elec_prod_factor, chp_thermal_prod_factor
 
@@ -404,19 +412,16 @@ class CHP(Tech):
         Convert the performance parameter inputs to coefficients used readily in Xpress
         :return: fuel_burn_slope, fuel_burn_intercept, thermal_prod_slope, thermal_prod_intercept
         """
-
-        fuel_burn_full_load = 1 / elec_effic_full_load * 3412.0 / 1.0E6 * 1.0  # [MMBtu/hr/kW]
-        fuel_burn_half_load = 1 / elec_effic_half_load * 3412.0 / 1.0E6 * 0.5  # [MMBtu/hr/kW]
-        fuel_burn_slope = (fuel_burn_full_load - fuel_burn_half_load) / (1.0 - 0.5)  # [MMBtu/hr/kW]
-        fuel_burn_intercept = fuel_burn_full_load - fuel_burn_slope * 1.0  # [MMBtu/hr/kW_rated]
-
-        thermal_prod_full_load = 1.0 * 1 / elec_effic_full_load * \
-                                 thermal_effic_full_load * 3412.0 / 1.0E6  # [MMBtu/hr/kW]
-        thermal_prod_half_load = 0.5 * 1 / elec_effic_half_load * \
-                                 thermal_effic_half_load * 3412.0 / 1.0E6   # [MMBtu/hr/kW]
-        thermal_prod_slope = (thermal_prod_full_load - thermal_prod_half_load) / (1.0 - 0.5)  # [MMBtu/hr/kW]
-        thermal_prod_intercept = thermal_prod_full_load - thermal_prod_slope * 1.0  # [MMBtu/hr/kW_rated]
-
+        # Fuel burn slope and intercept
+        fuel_burn_full_load = 1 / elec_effic_full_load * 1.0  # [kWt/kWe]
+        fuel_burn_half_load = 1 / elec_effic_half_load * 0.5  # [kWt/kWe]
+        fuel_burn_slope = (fuel_burn_full_load - fuel_burn_half_load) / (1.0 - 0.5)  # [kWt/kWe]
+        fuel_burn_intercept = fuel_burn_full_load - fuel_burn_slope * 1.0  # [kWt/kWe_rated]
+        # Thermal production slope and intercept
+        thermal_prod_full_load = 1.0 * 1 / elec_effic_full_load * thermal_effic_full_load  # [kWt/kWe]
+        thermal_prod_half_load = 0.5 * 1 / elec_effic_half_load * thermal_effic_half_load   # [kWt/kWe]
+        thermal_prod_slope = (thermal_prod_full_load - thermal_prod_half_load) / (1.0 - 0.5)  # [kWt/kWe]
+        thermal_prod_intercept = thermal_prod_full_load - thermal_prod_slope * 1.0  # [kWt/kWe_rated]
 
         return fuel_burn_slope, fuel_burn_intercept, thermal_prod_slope, thermal_prod_intercept
 
@@ -451,6 +456,7 @@ class CHP(Tech):
 
         return prime_mover_defaults
 
+
 class Boiler(Tech):
 
     boiler_efficiency_defaults = {"hot_water": 0.80,
@@ -466,12 +472,9 @@ class Boiler(Tech):
 
         self.is_hot = True
         self.reopt_class = 'BOILER'  # Not sure why UTIL tech is not assigned to the UTIL class
-        self.min_mmbtu_per_hr = kwargs.get('min_mmbtu_per_hr')
-        self.max_mmbtu_per_hr = kwargs.get('max_mmbtu_per_hr')
         self.max_thermal_factor_on_peak_load = kwargs.get('max_thermal_factor_on_peak_load')
         self.existing_boiler_production_type_steam_or_hw = kwargs.get('existing_boiler_production_type_steam_or_hw')
         self.boiler_efficiency = kwargs.get('boiler_efficiency')
-        self.installed_cost_us_dollars_per_mmbtu_per_hr = kwargs.get('installed_cost_us_dollars_per_mmbtu_per_hr')
         self.derate = 0
         self.n_timesteps = dfm.n_timesteps
         self.emissions_factor_lb_CO2_per_mmbtu = emissions_factor_lb_CO2_per_mmbtu
@@ -481,7 +484,10 @@ class Boiler(Tech):
         if self.max_mmbtu_per_hr is None:
             self.max_mmbtu_per_hr = max(boiler_fuel_series_bau) * self.boiler_efficiency * \
                                     self.max_thermal_factor_on_peak_load
-
+        
+        # Assign boiler max size equal to the peak load multiplied by the thermal_factor
+        self.max_kw = max(boiler_fuel_series_bau) * self.boiler_efficiency * self.max_thermal_factor_on_peak_load * MMBTU_TO_KWH        
+        
         dfm.add_boiler(self)
 
     @property
@@ -500,20 +506,15 @@ class ElectricChiller(Tech):
         self.loads_served = ['retail', 'tes']
         self.is_cool = True
         self.reopt_class = 'ELECCHL'
-        self.min_kw = kwargs.get('min_kw')
-        self.max_kw = kwargs.get('max_kw')
         self.max_thermal_factor_on_peak_load = kwargs['max_thermal_factor_on_peak_load']
-        self.installed_cost_us_dollars_per_kw = kwargs['installed_cost_us_dollars_per_kw']
         self.derate = 0
         self.n_timesteps = dfm.n_timesteps
         self.chiller_cop = lpct.chiller_cop
 
+        # Assign max_kw based on cooling thermal load (kw is cooling thermal production capacity)
         self.max_cooling_load_tons = max(lpct.load_list) / TONHOUR_TO_KWHT
         self.max_chiller_thermal_capacity_tons = self.max_cooling_load_tons * self.max_thermal_factor_on_peak_load
-
-        # Unless max_kw is a user-input, set the max_kw with the cooling load and factor
-        if self.max_kw is None:
-            self.max_kw = self.max_chiller_thermal_capacity_tons * TONHOUR_TO_KWHT
+        self.max_kw = self.max_chiller_thermal_capacity_tons * TONHOUR_TO_KWHT
 
         dfm.add_electric_chiller(self)
 

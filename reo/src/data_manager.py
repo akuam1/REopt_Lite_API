@@ -31,7 +31,7 @@ import copy
 from reo.src.urdb_parse import UrdbParse
 from reo.src.fuel_params import FuelParams
 from reo.utilities import annuity, degradation_factor, slope, intercept, insert_p_after_u_bp, insert_p_bp, \
-    insert_u_after_p_bp, insert_u_bp, setup_capital_cost_incentive, annuity_escalation
+    insert_u_after_p_bp, insert_u_bp, setup_capital_cost_incentive, annuity_escalation, MMBTU_TO_KWH
 import numpy as np
 max_incentive = 1.0e10
 
@@ -51,7 +51,6 @@ class DataManager:
     """
     Creates input dicts for reopt.jl and manages data transfer between Celery tasks
     """
-
     def __init__(self, run_id, user_id=None, n_timesteps=8760):
         self.pvs = []
         self.pvnms = []
@@ -76,8 +75,6 @@ class DataManager:
         self.cooling_load = None
         self.reopt_inputs = None
         self.reopt_inputs_bau = None
-        self.optimality_tolerance_decomp_subproblem = None
-        self.timeout_decomp_subproblem_seconds = None
         self.add_soc_incentive = None
 
         # following attributes used to pass data to process_results.py
@@ -155,7 +152,6 @@ class DataManager:
         exec("self.pv" + str(pv_number) + "nm" + " = self.pvnms[{}]".format(pv_number - 1))
 
     def add_wind(self, wind):
-
         junk = wind.prod_factor  # avoids redundant WindToolkit call for windnm
         self.wind = wind
         self.windnm = copy.deepcopy(wind)
@@ -193,12 +189,10 @@ class DataManager:
 
     def add_hot_tes(self, hot_tes):
         self.hot_tes = hot_tes
-
         # All attributes are written in finalize method because they are stacked 1..2 for hot_tes..cold_tes storages
 
     def add_cold_tes(self, cold_tes):
         self.cold_tes = cold_tes
-
         # All attributes are written in finalize method because they are stacked 1..2 for hot_tes..cold_tes storages
 
     def add_elec_tariff(self, elec_tariff):
@@ -540,7 +534,13 @@ class DataManager:
                         if itc is None or rebate_federal is None:
                             itc = 0.0
                             rebate_federal = 0.0
-                        itc_unit_basis = (tmp_cap_cost_slope[s] + rebate_federal) / (1 - itc)
+                        if itc == 1:
+                            itc_unit_basis = 0
+                        else:
+                            itc_unit_basis = (tmp_cap_cost_slope[s] + rebate_federal) / (1 - itc)
+                    else:
+                        # Not sure how else to handle this case, perhaps there is a better way to handle it?
+                        raise Exception('Invalid cost curve for {}. Value at index {} ({}) cannot be less than or equal to 0'.format(tech, s, cost_curve_bp_x[s + 1]))
 
                     sf = self.site.financial
                     updated_slope = setup_capital_cost_incentive(
@@ -703,7 +703,7 @@ class DataManager:
                 charge_efficiency.append(self.hot_tes.internal_efficiency_pct)
                 charge_efficiency.append(self.cold_tes.internal_efficiency_pct)
                 # Yearly fixed O&M per unit power
-                if tech.lower() == 'boiler' or tech.lower() == 'elec_chl':
+                if tech.lower() in ['boiler', 'elecchl']:
                     om_cost_us_dollars_per_kw.append(0)
                 else:
                     om_cost_us_dollars_per_kw.append(eval('self.' + tech + '.om_cost_us_dollars_per_kw'))
@@ -778,8 +778,6 @@ class DataManager:
                             min_sizes.append((eval('self.' + tech + '.existing_kw') or 0.0))
                         else:
                             min_sizes.append((eval('self.' + tech + '.existing_kw') or 0.0) + (eval('self.' + tech + '.min_kw') or 0.0))
-                    elif tech.lower() == 'boiler':
-                        min_sizes.append(eval('self.' + tech + '.min_mmbtu_per_hr'))
                     else:
                         min_sizes.append((eval('self.' + tech + '.min_kw') or 0.0))
 
@@ -868,8 +866,6 @@ class DataManager:
 
                 if bau and existing_kw > 0:  # existing PV in BAU scenario
                     max_sizes.append(float(existing_kw))
-                elif tech.lower() == 'boiler':
-                    max_sizes.append(eval('self.' + tech + '.max_mmbtu_per_hr'))
                 else:
                     max_sizes.append(float(existing_kw + beyond_existing_cap_kw))
 
@@ -1030,8 +1026,8 @@ class DataManager:
         storage_power_cost.append(StorageCostPerKW)
         storage_energy_cost.append(StorageCostPerKWH)
         if self.hot_tes is not None:
-            HotTESCostPerMMBTU = setup_capital_cost_incentive(
-                self.hot_tes.installed_cost_us_dollars_per_mmbtu,  # use full cost as basis
+            HotTESCostPerKWH = setup_capital_cost_incentive(
+                self.hot_tes.installed_cost_us_dollars_per_kwh,  # use full cost as basis
                 0,
                 0,
                 sf.owner_discount_pct,
@@ -1043,12 +1039,12 @@ class DataManager:
             )
             storage_techs.append('HotTES')
             storage_power_cost.append(0.0)
-            storage_energy_cost.append(HotTESCostPerMMBTU)
+            storage_energy_cost.append(HotTESCostPerKWH)
             #Note: power not sized in REopt; assume full charge or discharge in one timestep.
-            storage_min_power.append(self.hot_tes.min_mmbtu / self.steplength)
-            storage_max_power.append(self.hot_tes.max_mmbtu / self.steplength)
-            storage_min_energy.append(self.hot_tes.min_mmbtu)
-            storage_max_energy.append(self.hot_tes.max_mmbtu)
+            storage_min_power.append(self.hot_tes.min_kwh / self.steplength)
+            storage_max_power.append(self.hot_tes.max_kwh / self.steplength)
+            storage_min_energy.append(self.hot_tes.min_kwh)
+            storage_max_energy.append(self.hot_tes.max_kwh)
             storage_decay_rate.append(self.hot_tes.thermal_decay_rate_fraction)
 
         if self.cold_tes is not None:
@@ -1312,9 +1308,9 @@ class DataManager:
             self._get_export_curtailment_params(reopt_techs_bau, tariff_args.grid_export_rates_bau,
                                                 self.elec_tariff.net_metering_limit_kw)
 
-        #populate heating and cooling loads with zeros if not included in model.
+        # Populate heating (convert to kw/kwh) and cooling loads with zeros if not included in model.
         if self.heating_load != None:
-            heating_load = self.heating_load.load_list
+            heating_load = [self.heating_load.load_list[i] * MMBTU_TO_KWH for i in range(len(self.heating_load.load_list))]
         else:
             heating_load = [0.0 for _ in self.load.load_list]
         if self.LoadProfile["annual_cooling_kwh"] > 0.0:
@@ -1436,7 +1432,9 @@ class DataManager:
             'NMILLimits': NMILLimits,
             'TechToNMILMapping': TechToNMILMapping,
             'CapCostSegCount': n_segments,
-            # new parameters for reformulation
+            'CoincidentPeakLoadTimeSteps': self.elec_tariff.coincident_peak_load_active_timesteps,
+            'CoincidentPeakRates': self.elec_tariff.coincident_peak_load_charge_us_dollars_per_kw,
+            'CoincidentPeakPeriodCount': self.elec_tariff.coincident_peak_num_periods,
             'FuelCost': fuel_costs,
             'ElecRate': tariff_args.energy_costs,
             'GridExportRates': export_rates,
@@ -1446,7 +1444,7 @@ class DataManager:
             'ProductionFactor': production_factor,
             'ElecLoad': non_cooling_electric_load,
             'FuelLimit': fuel_limit,
-            'ChargeEfficiency': charge_efficiency,  # Do we need this indexed on tech?
+            'ChargeEfficiency': charge_efficiency,
             'GridChargeEfficiency': grid_charge_efficiency,
             'DischargeEfficiency': discharge_efficiency,
             'StorageMinSizeEnergy': storage_min_energy,
@@ -1458,7 +1456,6 @@ class DataManager:
             'StorageCanGridCharge': self.storage.canGridCharge,
             'SegmentMinSize': segment_min_size,
             'SegmentMaxSize': segment_max_size,
-            # Sets that need to be populated
             'Storage': storage_techs,
             'FuelType': fuel_types,
             'Subdivision': subdivisions,
@@ -1517,8 +1514,6 @@ class DataManager:
             'CHPDoesNotReduceDemandCharges': tariff_args.chp_does_not_reduce_demand_charges,
             'CHPStandbyCharge': tariff_args.chp_standby_rate_us_dollars_per_kw_per_month,
             'StorageDecayRate': storage_decay_rate,
-            'DecompOptTol': self.optimality_tolerance_decomp_subproblem,
-            'DecompTimeOut': self.timeout_decomp_subproblem_seconds,
             'AddSOCIncentive': self.add_soc_incentive
             }
         ## Uncomment the following and run a scenario to get an updated modelinputs.json for creating Julia system image
@@ -1579,7 +1574,9 @@ class DataManager:
             'NMILLimits': NMILLimits_bau,
             'TechToNMILMapping': TechToNMILMapping_bau,
             'CapCostSegCount': n_segments_bau,
-            # new parameters for reformulation
+            'CoincidentPeakLoadTimeSteps': self.elec_tariff.coincident_peak_load_active_timesteps,
+            'CoincidentPeakRates': self.elec_tariff.coincident_peak_load_charge_us_dollars_per_kw,
+            'CoincidentPeakPeriodCount': self.elec_tariff.coincident_peak_num_periods,
 	        'FuelCost': fuel_costs_bau,
 	        'ElecRate': tariff_args.energy_costs_bau,
 	        'GridExportRates': export_rates_bau,
@@ -1601,7 +1598,6 @@ class DataManager:
             'StorageCanGridCharge': self.storage.canGridCharge,
             'SegmentMinSize': segment_min_size_bau,
             'SegmentMaxSize': segment_max_size_bau,
-            # Sets that need to be populated
             'Storage': storage_techs,
             'FuelType': fuel_types_bau,
             'Subdivision': subdivisions,
@@ -1660,7 +1656,5 @@ class DataManager:
             'CHPDoesNotReduceDemandCharges': tariff_args.chp_does_not_reduce_demand_charges,
             'CHPStandbyCharge': tariff_args.chp_standby_rate_us_dollars_per_kw_per_month,
             'StorageDecayRate': storage_decay_rate,
-            'DecompOptTol': self.optimality_tolerance_decomp_subproblem,
-            'DecompTimeOut': self.timeout_decomp_subproblem_seconds,
             'AddSOCIncentive': self.add_soc_incentive
         }
