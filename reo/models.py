@@ -144,6 +144,13 @@ class SiteModel(models.Model):
     elevation_ft = models.FloatField(null=True, blank=True)
     renewable_electricity_energy_pct = models.FloatField(null=True, blank=True)
 
+    annual_income_dollars = models.FloatField(null=True, blank=True)
+    desired_energy_burden_threshold_percent = models.FloatField(null=True, blank=True)
+
+    # Outputs
+    year_one_energy_burden_percent = models.FloatField(null=True, blank=True)
+    year_one_energy_burden_bau_percent = models.FloatField(null=True, blank=True)
+
     @classmethod
     def create(cls, **kwargs):
         obj = cls(**kwargs)
