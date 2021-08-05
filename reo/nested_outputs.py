@@ -1030,7 +1030,17 @@ nested_output_definitions = {
                   "type": list_of_float,
                   "description": "Year one hourly time series of hot TES state of charge",
                   "units": "%"
-                }
+                },
+              
+              "year_one_energy_burden_percent" :{
+                "type": float,
+                "description": "Household energy burden, percent of annual income spent on annual energy bill"
+              },
+
+              "year_one_energy_burden_bau_percent" :{
+                "type": float,
+                "description": "Household energy burden, percent of annual income spent on annual energy bill"
+              }
             }
           }
         }

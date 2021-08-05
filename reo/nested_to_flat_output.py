@@ -94,7 +94,10 @@ def nested_to_flat(nested_output):
         'year_one_coincident_peak_cost': nested_output['Scenario']['Site']['ElectricTariff']['year_one_coincident_peak_cost_us_dollars'],
         'year_one_coincident_peak_cost_bau': nested_output['Scenario']['Site']['ElectricTariff']['year_one_coincident_peak_cost_bau_us_dollars'],
         'total_coincident_peak_cost': nested_output['Scenario']['Site']['ElectricTariff']['total_coincident_peak_cost_us_dollars'],
-        'total_coincident_peak_cost_bau': nested_output['Scenario']['Site']['ElectricTariff']['total_coincident_peak_cost_bau_us_dollars']
+        'total_coincident_peak_cost_bau': nested_output['Scenario']['Site']['ElectricTariff']['total_coincident_peak_cost_bau_us_dollars'],
+
+        'year_one_energy_burden': nested_output['Scenario']['Site']['year_one_energy_burden_percent'],
+        'year_one_energy_burden_bau': nested_output['Scenario']['Site']['year_one_energy_burden_bau_percent']
     }
     if nested_output['Scenario']['Site'].get('Wind') is not None:
         base.update({

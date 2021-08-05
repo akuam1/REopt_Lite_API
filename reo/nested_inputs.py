@@ -1833,7 +1833,19 @@ nested_input_definitions = {
           "default": 0.0,
           "description": "Percent of upfront project costs to depreciate under MACRS"
         }
-      }
+      },
+
+      "annual_income_dollars": {
+        "type": "float",
+        "default": 20000,
+        "description": "Annual household income in dollars."
+      },
+
+       "desired_energy_burden_threshold_percent": {
+        "type": "float",
+        "default": 0.06,
+        "description": "Threshold for energy burden constraint - maximum allowable energy burden percent in the investment case."
+      },
     }
   }
 }
