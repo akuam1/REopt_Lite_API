@@ -232,6 +232,11 @@ Base.@kwdef struct Parameter
 	CHPStandbyCharge::Float64
 	CHPDoesNotReduceDemandCharges::Int64
 	StorageDecayRate::AxisArray
+
+    ## Energy Burden Parameters
+    AnnualIncomeDollars::Float64
+    DesiredEnergyBurdenPercent::Float64
+    
 end
 
 
