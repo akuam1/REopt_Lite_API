@@ -1387,7 +1387,11 @@ class DataManager:
             'CHPDoesNotReduceDemandCharges': tariff_args.chp_does_not_reduce_demand_charges,
             'CHPStandbyCharge': tariff_args.chp_standby_rate_us_dollars_per_kw_per_month,
             'StorageDecayRate': storage_decay_rate,
-            'AddSOCIncentive': self.add_soc_incentive
+            'AddSOCIncentive': self.add_soc_incentive,
+
+            'AnnualIncomeDollars': self.annual_income_dollars,
+            'DesiredEnergyBurdenPercent': self.desired_energy_burden_threshold_percent
+
             }
         ## Uncomment the following and run a scenario to get an updated modelinputs.json for creating Julia system image
         # import json
@@ -1515,5 +1519,8 @@ class DataManager:
             'CHPDoesNotReduceDemandCharges': tariff_args.chp_does_not_reduce_demand_charges,
             'CHPStandbyCharge': tariff_args.chp_standby_rate_us_dollars_per_kw_per_month,
             'StorageDecayRate': storage_decay_rate,
-            'AddSOCIncentive': self.add_soc_incentive
+            'AddSOCIncentive': self.add_soc_incentive,
+
+            'AnnualIncomeDollars': self.annual_income_dollars,
+            'DesiredEnergyBurdenPercent': self.desired_energy_burden_threshold_percent
         }
