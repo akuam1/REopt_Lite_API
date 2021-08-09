@@ -102,6 +102,7 @@ def process_results(self, dfm_list, data, meta, saveToDB=True):
             "year_one_bill",
             "year_one_utility_kwh",
             "year_one_export_benefit",
+            "year_one_energy_burden", ## added energy burden bau output
             "GridToLoad",
             "total_energy_cost",
             "total_demand_cost",
@@ -802,6 +803,9 @@ def process_results(self, dfm_list, data, meta, saveToDB=True):
             for k in time_outputs:
                 self.nested_outputs["Scenario"]["Profile"][k] = self.results_dict.get(k)
                 self.nested_outputs["Scenario"]["Profile"][k + "_bau"] = self.results_dict.get(k + "_bau")
+            
+            self.nested_outputs["Scenario"]["Site"]["year_one_energy_burden_percent"] = self.results_dict.get("year_one_energy_burden_percent")
+            self.nested_outputs["Scenario"]["Site"]["year_one_energy_burden_bau_percent"] = self.results_dict.get("year_one_energy_burden_bau_percent")
 
         def compute_total_power(self, tech):
             power_lists = list()
