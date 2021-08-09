@@ -893,10 +893,10 @@ function add_chp_hourly_om_charges(m, p)
 end
 
 function add_energy_burden_constraint(m,p)
-	m[:Year1EnergyBurden] = @expression(m, m[:Year1EnergyCost] / p.AnnualIncomeDollars) 
+	m[:Year1EnergyBurdenPercent] = @expression(m, m[:Year1EnergyCost] / p.AnnualIncomeDollars) 
 	
 	##Constraint 15: Year one energy burden must not exceed provided energy burden threshold
-	@constraint(m, EnergyBurdenCon, m[:Year1EnergyBurden] < p.DesiredEnergyBurdenPercent)
+	@constraint(m, EnergyBurdenCon, m[:Year1EnergyBurdenPercent] < p.DesiredEnergyBurdenPercent)
 end
 
 function add_cost_function(m, p)
