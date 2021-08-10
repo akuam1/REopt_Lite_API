@@ -1389,8 +1389,8 @@ class DataManager:
             'StorageDecayRate': storage_decay_rate,
             'AddSOCIncentive': self.add_soc_incentive,
 
-            'AnnualIncomeDollars': self.annual_income_dollars,
-            'DesiredEnergyBurdenPercent': self.desired_energy_burden_threshold_percent
+            'AnnualIncomeDollars': self.site.annual_income_dollars,
+            'DesiredEnergyBurdenPercent': self.site.desired_energy_burden_threshold_percent
 
             }
         ## Uncomment the following and run a scenario to get an updated modelinputs.json for creating Julia system image
@@ -1521,6 +1521,6 @@ class DataManager:
             'StorageDecayRate': storage_decay_rate,
             'AddSOCIncentive': self.add_soc_incentive,
 
-            'AnnualIncomeDollars': self.annual_income_dollars,
-            'DesiredEnergyBurdenPercent': self.desired_energy_burden_threshold_percent
+            'AnnualIncomeDollars': self.site.annual_income_dollars,
+            'DesiredEnergyBurdenPercent': self.site.desired_energy_burden_threshold_percent
         }
