@@ -143,7 +143,10 @@ class EnergyBurdenTest(ResourceTestCaseMixin, TestCase):
         d_expected['year_one_energy_burden_percent'] = 1200/20000
 
         response = self.get_response(data=self.post)
-        #self.assertHttpCreated(response)
+        self.assertHttpCreated(response)
+        r = json.loads(response.content)
+        run_uuid = r.get('run_uuid')
+        d = ModelManager.make_response(run_uuid=run_uuid)
         ## not fully clear for this code here
 
         ## calculated outputs
