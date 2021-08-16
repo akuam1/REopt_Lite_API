@@ -66,11 +66,12 @@ class Financial(object):
 
 class Site(object):
 
-    def __init__(self, dfm, land_acres=None, roof_squarefeet=None, annual_income_dollars = None, desired_energy_burden_threshold_percent = None, **kwargs):
+    def __init__(self, dfm, land_acres=None, roof_squarefeet=None, annual_income_dollars = None, desired_energy_burden_threshold_percent = None, desired_energy_burden_threshold_bau_percent = None, **kwargs):
 
         self.land_acres = land_acres
         self.roof_squarefeet = roof_squarefeet
         self.financial = Financial(**kwargs['Financial'])
         self.annual_income_dollars = annual_income_dollars
         self.desired_energy_burden_threshold_percent = desired_energy_burden_threshold_percent
+        self.desired_energy_burden_threshold_bau_percent = desired_energy_burden_threshold_bau_percent
         dfm.add_site(self)
