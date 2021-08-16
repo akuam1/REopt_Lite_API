@@ -146,6 +146,7 @@ class SiteModel(models.Model):
 
     annual_income_dollars = models.FloatField(null=True, blank=True)
     desired_energy_burden_threshold_percent = models.FloatField(null=True, blank=True)
+    desired_energy_burden_threshold_bau_percent = models.FloatField(null=True, blank=True)
 
     # Outputs
     year_one_energy_burden_percent = models.FloatField(null=True, blank=True)
