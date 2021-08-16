@@ -1522,5 +1522,5 @@ class DataManager:
             'AddSOCIncentive': self.add_soc_incentive,
 
             'AnnualIncomeDollars': self.site.annual_income_dollars,
-            'DesiredEnergyBurdenPercent': self.site.desired_energy_burden_threshold_percent
+            'DesiredEnergyBurdenPercent': self.site.desired_energy_burden_threshold_bau_percent
         }
