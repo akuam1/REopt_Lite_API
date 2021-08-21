@@ -236,6 +236,7 @@ Base.@kwdef struct Parameter
     ## Energy Burden Parameters
     AnnualIncomeDollars::Float64
     DesiredEnergyBurdenPercent::Float64
+    DesiredEnergyBurdenBAUPercent::Float64
     
 end
 
