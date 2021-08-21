@@ -1392,6 +1392,7 @@ class DataManager:
             'AnnualIncomeDollars': self.site.annual_income_dollars,
             'DesiredEnergyBurdenPercent': self.site.desired_energy_burden_threshold_percent
 
+
             }
         ## Uncomment the following and run a scenario to get an updated modelinputs.json for creating Julia system image
         # import json

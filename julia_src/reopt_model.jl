@@ -893,7 +893,7 @@ function add_chp_hourly_om_charges(m, p)
 end
 
 function add_energy_burden_constraint(m,p)
-	m[:Year1EnergyBurdenPercent] = @expression(m, (m[:TotalEnergyChargesUtil] / p.pwf_e) / p.AnnualIncomeDollars) 
+	m[:Year1EnergyBurdenPercent] = @expression(m, ((m[:TotalEnergyChargesUtil] / p.pwf_e) + (m[:TotalDemandCharges] / p.pwf_e) + (m[:TotalCPCharges] / p.pwf_e) + ((p.pwf_e * p.FixedMonthlyCharge * 12) / p.pwf_e) + (m[:MinChargeAdder] / p.pwf_e)) / p.AnnualIncomeDollars) 
 	
 	##Constraint 15: Year one energy burden must not exceed provided energy burden threshold
 	@constraint(m, EnergyBurdenCon, m[:Year1EnergyBurdenPercent] <= p.DesiredEnergyBurdenPercent) #can't just do <
@@ -1113,6 +1113,7 @@ end
 function reopt_results(m, p, r::Dict)
 	add_storage_results(m, p, r)
 	add_pv_results(m, p, r)
+	add_energy_burden_results(m, p, r)
 	if !isempty(m[:GeneratorTechs])
 		add_generator_results(m, p, r)
     else
@@ -1599,4 +1600,9 @@ function add_util_results(m, p, r::Dict)
     @expression(m, GridToLoad[ts in p.TimeStep],
                 sum(m[:dvGridPurchase][u,ts] for u in p.PricingTier) - m[:dvGridToStorage][ts] )
     r["GridToLoad"] = round.(value.(GridToLoad), digits=3)
+end
+
+function add_energy_burden_results(m, p, r::Dict)
+	m[:Year1EnergyBurdenPercent] = @expression(m, ((m[:TotalEnergyChargesUtil] / p.pwf_e) + (m[:TotalDemandCharges] / p.pwf_e) + (m[:TotalCPCharges] / p.pwf_e) + ((p.pwf_e * p.FixedMonthlyCharge * 12) / p.pwf_e) + (m[:MinChargeAdder] / p.pwf_e)) / p.AnnualIncomeDollars)
+    r["year_one_energy_burden_percent"] = round(value(m[:Year1EnergyBurdenPercent]), digits=4)
 end
