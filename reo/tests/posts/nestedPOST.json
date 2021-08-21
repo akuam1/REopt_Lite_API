@@ -9,8 +9,6 @@
       "longitude": -100.0,
       "land_acres": 5,
       "roof_squarefeet": 500,
-      "annual_income_dollars": 20000,
-      "desired_energy_burden_threshold_percent": 0.06,
       
       "Financial": {
         "om_cost_escalation_pct": 0.025,
